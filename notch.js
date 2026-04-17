@@ -50,7 +50,7 @@ class Notch extends St.Widget {
         this._activeTab = 'system';
 
         this._loadDims();
-        this.set_size(this._cw, this._ch);
+        this.set_size(this._cwMin, this._ch);
 
         this._buildLayers();
         this._setupDnd();
@@ -87,11 +87,32 @@ class Notch extends St.Widget {
     }
 
     _loadDims() {
-        this._cw = this._settings.get_int('collapsed-width');
-        this._ch = this._settings.get_int('collapsed-height');
-        this._ew = this._settings.get_int('expanded-width');
-        this._eh = this._settings.get_int('expanded-height');
+        this._cwMin = this._settings.get_int('collapsed-width');
+        this._ch    = this._settings.get_int('collapsed-height');
+        this._ew    = this._settings.get_int('expanded-width');
+        this._eh    = this._settings.get_int('expanded-height');
         this._radius = this._settings.get_int('corner-radius');
+    }
+
+    _measureCollapsedWidth() {
+        try {
+            const [, natW] = this._collapsed.get_preferred_width(this._ch);
+            return Math.max(this._cwMin, natW);
+        } catch (_) { return this._cwMin; }
+    }
+
+    _resizeCollapsed(animate = true) {
+        if (this._expanded || this._peekActive) return;
+        const target = this._measureCollapsedWidth();
+        if (animate) {
+            this.remove_all_transitions();
+            this.ease({
+                width: target, height: this._ch,
+                duration: 180, mode: Clutter.AnimationMode.EASE_OUT_EXPO,
+            });
+        } else {
+            this.set_size(target, this._ch);
+        }
     }
 
     _applyColors() {
@@ -142,7 +163,7 @@ class Notch extends St.Widget {
     _onSettingChanged(key) {
         if (key.startsWith('collapsed-') || key.startsWith('expanded-') || key === 'corner-radius') {
             this._loadDims();
-            if (!this._expanded && !this._peekActive) this.set_size(this._cw, this._ch);
+            if (!this._expanded && !this._peekActive) this._resizeCollapsed(false);
             if (this._expanded) this.set_size(this._ew, this._eh);
             this._applyColors();
         }
@@ -151,7 +172,10 @@ class Notch extends St.Widget {
             this._applyColors();
         }
         if (key === 'hide-datemenu') this._hideDateMenuIfRequested();
-        if (key === 'clock-format' || key === 'show-seconds' || key === 'show-date') this._updateClocks();
+        if (key === 'clock-format' || key === 'show-seconds' || key === 'show-date') {
+            this._updateClocks();
+            this._resizeCollapsed();
+        }
     }
 
     _buildLayers() {
@@ -455,8 +479,9 @@ class Notch extends St.Widget {
         this._expanded = false;
         this._collapsed.show();
         this.remove_all_transitions();
+        const targetW = this._measureCollapsedWidth();
         this.ease({
-            width: this._cw, height: this._ch,
+            width: targetW, height: this._ch,
             duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_EXPO,
         });
         this._collapsed.ease({opacity: 255, duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
@@ -523,20 +548,24 @@ class Notch extends St.Widget {
             ? this._settings.get_string('battery-charging-color')
             : (low ? this._settings.get_string('battery-low-color')
                    : this._settings.get_string('battery-normal-color'));
+        const wasVisible = this._batteryIcon.visible;
         this._batteryIcon.icon_name = iconName;
         this._batteryIcon.set_style(`color: ${color};`);
         this._batteryIcon.visible = true;
+        if (!wasVisible) this._resizeCollapsed();
     }
 
     _updateMedia(info) {
+        const wasVisible = this._mediaIcon.visible;
         if (!info?.playing && !info?.paused) {
             this._mediaIcon.visible = false;
-            return;
+        } else {
+            const iconName = this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic';
+            this._mediaIcon.icon_name = iconName;
+            this._mediaIcon.opacity = info.playing ? 255 : 150;
+            this._mediaIcon.visible = true;
         }
-        const iconName = this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic';
-        this._mediaIcon.icon_name = iconName;
-        this._mediaIcon.opacity = info.playing ? 255 : 150;
-        this._mediaIcon.visible = true;
+        if (this._mediaIcon.visible !== wasVisible) this._resizeCollapsed();
     }
 
     _resolveMediaIcon(desktopEntry) {
@@ -562,29 +591,36 @@ class Notch extends St.Widget {
     _updateShelfIndicator(n) {
         if (n > 0) { this._shelfBadge.text = `${n}`; this._shelfBadge.visible = true; }
         else       { this._shelfBadge.visible = false; }
+        this._resizeCollapsed();
     }
 
     _updatePomodoroIndicator() {
         const p = this._modules?.pomodoro;
         if (!this._pomoLabel) return;
-        if (!p || !p.isActive()) { this._pomoLabel.visible = false; return; }
-        this._pomoLabel.text = p.formatRemain();
-        this._pomoLabel.visible = true;
-        this._pomoLabel.remove_style_class_name('break');
-        if (p.getState() === 'break' || p.getState() === 'longbreak') {
-            this._pomoLabel.add_style_class_name('break');
+        const wasVisible = this._pomoLabel.visible;
+        if (!p || !p.isActive()) { this._pomoLabel.visible = false; }
+        else {
+            this._pomoLabel.text = p.formatRemain();
+            this._pomoLabel.visible = true;
+            this._pomoLabel.remove_style_class_name('break');
+            if (p.getState() === 'break' || p.getState() === 'longbreak') {
+                this._pomoLabel.add_style_class_name('break');
+            }
         }
+        if (this._pomoLabel.visible !== wasVisible) this._resizeCollapsed();
     }
 
     _updatePrivacyIndicator() {
         const q = this._modules?.quick;
         if (!this._privacyDot) return;
+        const wasVisible = this._privacyDot.visible;
         const active = q && (q._mic || q._cam);
         this._privacyDot.visible = !!active;
         this._privacyDot.remove_style_class_name('cam');
         this._privacyDot.remove_style_class_name('mic');
         if (q?._cam) this._privacyDot.add_style_class_name('cam');
         else if (q?._mic) this._privacyDot.add_style_class_name('mic');
+        if (this._privacyDot.visible !== wasVisible) this._resizeCollapsed();
     }
 
     _peekNotification(source, notif) {
@@ -618,7 +654,7 @@ class Notch extends St.Widget {
             this._peekLayer = null;
             if (!this._expanded) {
                 this._collapsed.show();
-                this.ease({width: this._cw, height: this._ch, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
+                this.ease({width: this._measureCollapsedWidth(), height: this._ch, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
             }
         };
         if (immediate) finalize();
