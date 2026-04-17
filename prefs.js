@@ -217,11 +217,17 @@ export default class MertNotchPrefs extends ExtensionPreferences {
     }
 
     async _accountsPage(settings) {
-        const page = new Adw.PreferencesPage({title: 'Accounts', icon_name: 'avatar-default-symbolic'});
+        const page = new Adw.PreferencesPage({title: 'Calendar & Tasks', icon_name: 'x-office-calendar-symbolic'});
+
+        const flow = new Adw.PreferencesGroup({
+            title: 'How it works',
+            description: 'Calendar events come from the shell\'s CalendarServer (the same source GNOME uses for the top-bar calendar). Tasks come from Evolution Data Server\'s task sources. Both are populated automatically once a Google account is added to GNOME Online Accounts — you do NOT log in from inside this extension, GOA handles it. If events/tasks are empty, run "Open GNOME Settings" below and confirm Calendar + To Do are toggled on for your account.',
+        });
+        page.add(flow);
 
         const group = new Adw.PreferencesGroup({
-            title: 'Google (via GNOME Online Accounts)',
-            description: 'Calendar and Tasks data flow through GOA + evolution-data-server. Add or remove accounts from GNOME Settings → Online Accounts. Toggle which accounts this extension actively syncs below.',
+            title: 'Google accounts',
+            description: 'Toggle which connected accounts this notch should read.',
         });
 
         let accounts = [];

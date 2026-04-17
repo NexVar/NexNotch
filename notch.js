@@ -19,6 +19,7 @@ import {Notes}            from './modules/notes.js';
 import {Weather}          from './modules/weather.js';
 import {Pomodoro}         from './modules/pomodoro.js';
 import {QuickHub}         from './modules/quick.js';
+import {Stats}            from './modules/stats.js';
 
 const HOVER_DELAY_MS    = 180;
 const COLLAPSE_DELAY_MS = 300;
@@ -67,6 +68,7 @@ class Notch extends St.Widget {
             weather:       new Weather(this._settings),
             pomodoro:      new Pomodoro(this._settings),
             quick:         new QuickHub(this._settings),
+            stats:         new Stats(this._settings),
         };
 
         this._modules.system.connect('updated',             (_, s)      => this._onSystemUpdated(s));
@@ -271,7 +273,7 @@ class Notch extends St.Widget {
         this._expandedLayer.add_child(this._content);
 
         this._tabButtons = {};
-        const tabIds = ['system', 'calendar', 'tasks', 'shelf', 'notes', 'weather', 'pomodoro', 'quick'];
+        const tabIds = ['system', 'calendar', 'tasks', 'shelf', 'notes', 'weather', 'pomodoro', 'stats', 'quick'];
         for (const id of tabIds) {
             const btn = new St.Button({
                 style_class: 'mertnotch-tab',
@@ -354,7 +356,8 @@ class Notch extends St.Widget {
     _tabLabel(id) {
         return {
             system: 'System', calendar: 'Cal', tasks: 'Tasks', shelf: 'Shelf',
-            notes:  'Notes',  weather:  'Weather', pomodoro: 'Timer', quick: 'Quick',
+            notes:  'Notes',  weather:  'Weather', pomodoro: 'Timer',
+            stats:  'Stats',  quick: 'Quick',
         }[id] ?? id;
     }
 
@@ -541,6 +544,7 @@ class Notch extends St.Widget {
             notes:    this._modules.notes,
             weather:  this._modules.weather,
             pomodoro: this._modules.pomodoro,
+            stats:    this._modules.stats,
             quick:    this._modules.quick,
         }[this._activeTab];
         const child = mod?.render?.(this._activeTab);
@@ -558,20 +562,37 @@ class Notch extends St.Widget {
         if (!battery) { this._batteryIcon.visible = false; return; }
         const cap = battery.capacity;
         const status = (battery.status ?? '').toLowerCase();
-        const charging = status === 'charging' || status === 'full';
-        const low = cap < 20 && !charging;
 
-        let iconName = 'battery-good-symbolic';
-        if (charging)                iconName = cap >= 95 ? 'battery-full-charging-symbolic' : 'battery-good-charging-symbolic';
-        else if (cap >= 90)          iconName = 'battery-full-symbolic';
-        else if (cap >= 55)          iconName = 'battery-good-symbolic';
-        else if (cap >= 25)          iconName = 'battery-low-symbolic';
-        else                         iconName = 'battery-caution-symbolic';
+        /* Desktops / fully-charged laptops report "not charging" or "full";
+           that's a resting, healthy state — don't paint it like a drain. */
+        const draining = status === 'discharging';
+        const charging = status === 'charging';
+        const low = draining && cap < 20;
 
-        const color = charging
-            ? this._settings.get_string('battery-charging-color')
-            : (low ? this._settings.get_string('battery-low-color')
-                   : this._settings.get_string('battery-normal-color'));
+        /* On desktop (no real battery drain, status stuck at "not charging"
+           or unknown) we hide the icon entirely — it's noise. */
+        if (!draining && !charging && (status === 'not charging' || status === 'unknown' || status === 'full')) {
+            if (cap >= 95 || cap === 0) {
+                const wasVisible = this._batteryIcon.visible;
+                this._batteryIcon.visible = false;
+                if (wasVisible) this._resizeCollapsed();
+                return;
+            }
+        }
+
+        let iconName;
+        if (charging)         iconName = cap >= 95 ? 'battery-full-charging-symbolic' : 'battery-good-charging-symbolic';
+        else if (cap >= 90)   iconName = 'battery-full-symbolic';
+        else if (cap >= 55)   iconName = 'battery-good-symbolic';
+        else if (cap >= 25)   iconName = 'battery-low-symbolic';
+        else                  iconName = 'battery-caution-symbolic';
+
+        let color;
+        if (charging)    color = this._settings.get_string('battery-charging-color');
+        else if (low)    color = this._settings.get_string('battery-low-color');
+        else if (draining) color = this._settings.get_string('battery-normal-color');
+        else             color = 'rgba(255, 255, 255, 0.75)';   /* neutral — no alert */
+
         const wasVisible = this._batteryIcon.visible;
         this._batteryIcon.icon_name = iconName;
         this._batteryIcon.set_style(`color: ${color};`);

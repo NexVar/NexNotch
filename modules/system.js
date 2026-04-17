@@ -234,12 +234,56 @@ export const SystemMonitor = GObject.registerClass({
         if (!this._batteryPath) return null;
         const capacity = Number(this._readFile(`${this._batteryPath}/capacity`).trim());
         const status = this._readFile(`${this._batteryPath}/status`).trim();
-        return {capacity, status};
+
+        /* Remaining time estimate (like Vitals): energy_now / power_now,
+           or charge_now / current_now depending on driver. */
+        const readNum = (f) => {
+            const v = Number(this._readFile(`${this._batteryPath}/${f}`).trim());
+            return Number.isFinite(v) ? v : 0;
+        };
+        const energyNow = readNum('energy_now') || readNum('charge_now');
+        const powerNow  = readNum('power_now')  || readNum('current_now');
+        const energyFull = readNum('energy_full') || readNum('charge_full');
+
+        let minutes = null;
+        if (powerNow > 0 && energyNow > 0) {
+            if (status === 'Discharging') {
+                minutes = Math.round((energyNow / powerNow) * 60);
+            } else if (status === 'Charging' && energyFull > energyNow) {
+                minutes = Math.round(((energyFull - energyNow) / powerNow) * 60);
+            }
+        }
+        return {capacity, status, minutes};
     }
 
     render() {
         const s = this._stats;
         const box = new St.BoxLayout({style_class: 'mertnotch-sys', vertical: true, x_expand: true, y_expand: true});
+
+        /* ── top row: prominent headline stats (CPU · RAM · Uptime · Battery time) ── */
+        const headline = new St.BoxLayout({style_class: 'mertnotch-sys-headline', vertical: false, x_expand: true});
+        const cell = (label, value, cls) => {
+            const c = new St.BoxLayout({style_class: 'mertnotch-sys-headline-cell', vertical: true, x_expand: true});
+            c.add_child(new St.Label({text: label, style_class: 'mertnotch-sys-headline-label'}));
+            const val = new St.Label({text: value, style_class: 'mertnotch-sys-headline-value'});
+            if (cls) val.add_style_class_name(cls);
+            c.add_child(val);
+            return c;
+        };
+        const cpuClass = s.cpu > 85 ? 'danger' : (s.cpu > 65 ? 'warn' : null);
+        const ramClass = s.ram > 90 ? 'danger' : (s.ram > 75 ? 'warn' : null);
+        headline.add_child(cell('CPU',    `${s.cpu.toFixed(0)}%`, cpuClass));
+        headline.add_child(cell('RAM',    `${s.ram.toFixed(0)}%`, ramClass));
+        headline.add_child(cell('Uptime', this._upFmt(s.uptime)));
+        if (s.battery) {
+            const timeStr = s.battery.minutes
+                ? (s.battery.status === 'Charging' ? `${this._timeFmt(s.battery.minutes)} to full` : this._timeFmt(s.battery.minutes))
+                : s.battery.status;
+            headline.add_child(cell('Battery', `${s.battery.capacity}% · ${timeStr}`));
+        }
+        box.add_child(headline);
+
+        /* ── detail grid: net / disk / temp / swap / load ── */
         const grid = new Clutter.GridLayout();
         const content = new St.Widget({layout_manager: grid, x_expand: true, style_class: 'mertnotch-sys-grid'});
         let row = 0;
@@ -260,20 +304,23 @@ export const SystemMonitor = GObject.registerClass({
             } else row += 1;
         };
 
-        add('CPU',       `${s.cpu.toFixed(0)}%`, s.cpu);
-        add('Memory',    `${s.ram.toFixed(0)}%`, s.ram);
-        if (s.swap > 0) add('Swap', `${s.swap.toFixed(0)}%`, s.swap);
+        if (s.swap > 0) add('Swap',   `${s.swap.toFixed(0)}%`, s.swap);
         add('Net ↓',     `${this._kbFmt(s.net_rx)}`);
         add('Net ↑',     `${this._kbFmt(s.net_tx)}`);
         add('Disk ↓',    `${this._kbFmt(s.disk_r)}`);
         add('Disk ↑',    `${this._kbFmt(s.disk_w)}`);
         if (s.temp > 0) add('Temp',  `${s.temp.toFixed(0)}°C`);
         add('Load',      s.load.map(x => x.toFixed(2)).join(' '));
-        add('Uptime',    this._upFmt(s.uptime));
-        if (s.battery) add('Battery', `${s.battery.capacity}% ${s.battery.status}`);
 
         box.add_child(content);
         return box;
+    }
+
+    _timeFmt(minutes) {
+        if (minutes < 60) return `${minutes}m`;
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
     }
 
     _kbFmt(kb) {

@@ -7,6 +7,31 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
+const LOG_DIR  = GLib.build_filenamev([GLib.get_user_data_dir(), 'mertnotch']);
+const LOG_FILE = GLib.build_filenamev([LOG_DIR, 'pomodoro.jsonl']);
+
+function _appendSession(entry) {
+    try {
+        GLib.mkdir_with_parents(LOG_DIR, 0o755);
+        const line = JSON.stringify(entry) + '\n';
+        const file = Gio.File.new_for_path(LOG_FILE);
+        const stream = file.append_to(Gio.FileCreateFlags.NONE, null);
+        stream.write_all(line, null);
+        stream.close(null);
+    } catch (e) { logError(e, 'mertnotch:pomodoro:log'); }
+}
+
+export function readSessions() {
+    try {
+        const [ok, bytes] = GLib.file_get_contents(LOG_FILE);
+        if (!ok) return [];
+        const text = new TextDecoder().decode(bytes);
+        return text.split('\n').filter(Boolean).map(l => {
+            try { return JSON.parse(l); } catch (_) { return null; }
+        }).filter(Boolean);
+    } catch (_) { return []; }
+}
+
 export const Pomodoro = GObject.registerClass({
     Signals: {
         'tick':  {},
@@ -66,13 +91,20 @@ export const Pomodoro = GObject.registerClass({
 
     reset() {
         if (this._timer) { GLib.source_remove(this._timer); this._timer = 0; }
+        /* Log the aborted session with completed=false so the dashboard can
+           distinguish finished from skipped pomodoros. */
+        if (this._startedAt && (this._state === 'work' || this._state === 'break' || this._state === 'longbreak')) {
+            this._logCompleted(false);
+        }
         this._state  = 'idle';
         this._remain = 0;
         this._cycle  = 0;
+        this._startedAt = null;
         this.emit('state', this._state);
     }
 
     _run() {
+        this._startedAt = new Date();
         this.emit('state', this._state);
         this.emit('tick');
         if (this._timer) GLib.source_remove(this._timer);
@@ -90,10 +122,27 @@ export const Pomodoro = GObject.registerClass({
 
     _onComplete() {
         const wasWork = this._state === 'work';
+        this._logCompleted(true);
         this._notify(wasWork ? 'Work cycle complete' : 'Break over',
                      wasWork ? 'Time for a break!' : 'Back to work.');
         if (wasWork) this.startBreak();
         else         this.startWork();
+    }
+
+    _logCompleted(completed) {
+        if (!this._startedAt) return;
+        const {work, brk} = this._activePreset();
+        const plannedSec = (this._state === 'work') ? work * 60 : brk * 60;
+        const endedAt = new Date();
+        _appendSession({
+            started_at: this._startedAt.toISOString(),
+            ended_at:   endedAt.toISOString(),
+            kind:       this._state,
+            preset:     this._settings.get_string('pomodoro-active-preset'),
+            duration_sec: Math.round((endedAt - this._startedAt) / 1000),
+            planned_sec:  plannedSec,
+            completed,
+        });
     }
 
     _notify(title, body) {

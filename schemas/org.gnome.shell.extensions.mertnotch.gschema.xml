@@ -29,7 +29,7 @@
 
     <!-- battery icon tinting -->
     <key name="battery-charging-color" type="s"><default>"rgba(80, 220, 120, 1.0)"</default><summary>Battery icon color while charging</summary></key>
-    <key name="battery-normal-color"   type="s"><default>"rgba(220, 70, 70, 1.0)"</default>  <summary>Battery icon color while discharging</summary></key>
+    <key name="battery-normal-color"   type="s"><default>"rgba(255, 255, 255, 0.85)"</default><summary>Battery icon color while discharging</summary></key>
     <key name="battery-low-color"      type="s"><default>"rgba(255, 140, 60, 1.0)"</default> <summary>Battery icon color when low</summary></key>
 
     <!-- performance -->

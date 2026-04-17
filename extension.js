@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import Meta from 'gi://Meta';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -11,6 +12,19 @@ import {Notch} from './notch.js';
 export default class MertNotchExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
+
+        /* Ensure Evolution Data Server source registry is running. On this
+           Fedora setup D-Bus service-file activation of
+           org.gnome.evolution.dataserver.Sources5 doesn't happen at login,
+           so Calendar and Tasks arrive empty. Spawning it here is idempotent
+           — if it's already running the second instance exits immediately. */
+        try {
+            Gio.Subprocess.new(
+                ['/usr/libexec/evolution-source-registry'],
+                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
+            );
+        } catch (_) {}
+
         this._notch = new Notch(this);
 
         /* Mount the notch into the top chrome layer — OUTSIDE the panel's
