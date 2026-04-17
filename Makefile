@@ -18,9 +18,14 @@ install: compile-schemas
 uninstall:
 	rm -rf "$(DEST)"
 
-pack: compile-schemas
-	rm -f $(UUID).shell-extension.zip
-	zip -r $(UUID).shell-extension.zip $(FILES) -x '*.xml'
+pack:
+	rm -f $(UUID).shell-extension.zip schemas/gschemas.compiled
+	gnome-extensions pack \
+	    --extra-source=modules \
+	    --extra-source=README.md \
+	    --extra-source=LICENSE \
+	    --schema=schemas/org.gnome.shell.extensions.mertnotch.gschema.xml \
+	    --force
 	@echo "Built $(UUID).shell-extension.zip"
 
 enable:
