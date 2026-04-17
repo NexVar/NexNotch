@@ -24,8 +24,13 @@
     <key name="corner-radius"    type="i"><default>20</default> <range min="0"   max="32"/> <summary>Bottom corner radius</summary></key>
 
     <!-- colors (CSS rgba strings so users can use any transparency) -->
-    <key name="bg-color"         type="s"><default>"rgba(0, 0, 0, 0.85)"</default><summary>Notch background color</summary></key>
-    <key name="accent-color"     type="s"><default>"rgba(120, 170, 255, 0.28)"</default><summary>Accent color (active tab, bar fill)</summary></key>
+    <key name="bg-color"         type="s"><default>"rgba(0, 0, 0, 0.96)"</default><summary>Notch background color</summary></key>
+    <key name="accent-color"     type="s"><default>"rgba(120, 170, 255, 0.32)"</default><summary>Accent color (active tab, bar fill)</summary></key>
+
+    <!-- battery icon tinting -->
+    <key name="battery-charging-color" type="s"><default>"rgba(80, 220, 120, 1.0)"</default><summary>Battery icon color while charging</summary></key>
+    <key name="battery-normal-color"   type="s"><default>"rgba(220, 70, 70, 1.0)"</default>  <summary>Battery icon color while discharging</summary></key>
+    <key name="battery-low-color"      type="s"><default>"rgba(255, 140, 60, 1.0)"</default> <summary>Battery icon color when low</summary></key>
 
     <!-- performance -->
     <key name="poll-interval"    type="i"><default>1</default><range min="1" max="30"/><summary>System monitor poll interval (seconds)</summary></key>

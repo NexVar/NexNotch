@@ -18,7 +18,25 @@
 
 .mertnotch-collapsed {
     padding: 0 14px;
-    spacing: 10px;
+    spacing: 0;
+}
+
+.mertnotch-cluster {
+    spacing: 7px;
+}
+
+.mertnotch-left {
+    min-width: 60px;
+}
+
+.mertnotch-right {
+    min-width: 60px;
+    x-align: end;
+}
+
+.mertnotch-battery-icon,
+.mertnotch-media-icon {
+    padding: 0 1px;
 }
 
 .mertnotch-clock {

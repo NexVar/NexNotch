@@ -7,10 +7,11 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
-import {SystemMonitor}   from './modules/system.js';
-import {DropShelf}       from './modules/dropshelf.js';
+import {SystemMonitor}    from './modules/system.js';
+import {DropShelf}        from './modules/dropshelf.js';
 import {NotificationPeek} from './modules/notifications.js';
-import {CalendarPeek}    from './modules/calendar.js';
+import {CalendarPeek}     from './modules/calendar.js';
+import {MprisWatcher}     from './modules/mpris.js';
 
 const HOVER_DELAY_MS    = 180;
 const COLLAPSE_DELAY_MS = 300;
@@ -46,13 +47,15 @@ class Notch extends St.Widget {
 
         this._buildLayers();
         this._setupDnd();
-        this._applySettings();
+        this._applyColors();
+        this._hideDateMenuIfRequested();
 
         this._modules = {
             system:        new SystemMonitor(this._settings),
             dropshelf:     new DropShelf(this._settings),
             notifications: new NotificationPeek(this._settings),
             calendar:      new CalendarPeek(this._settings),
+            mpris:         new MprisWatcher(),
         };
 
         this._modules.system.connect('updated',             (_, s)      => this._onSystemUpdated(s));
@@ -60,6 +63,7 @@ class Notch extends St.Widget {
         this._modules.dropshelf.connect('count-changed',    (_, n)      => this._updateShelfIndicator(n));
         this._modules.dropshelf.connect('request-add-file', ()          => this.openFilePicker());
         this._modules.calendar.connect('updated',           ()          => { if (this._expanded) this._renderTab(); });
+        this._modules.mpris.connect('changed',              (_, info)   => this._updateMedia(info));
 
         this._hoverHandlerId = this.connect('notify::hover', () => this._onHoverChanged());
         this.connect('destroy', () => this._onDestroy());
@@ -72,42 +76,33 @@ class Notch extends St.Widget {
         this._ch = this._settings.get_int('collapsed-height');
         this._ew = this._settings.get_int('expanded-width');
         this._eh = this._settings.get_int('expanded-height');
-    }
-
-    _applySettings() {
-        this._hideDateMenuIfRequested();
-        this._applyColors();
+        this._radius = this._settings.get_int('corner-radius');
     }
 
     _applyColors() {
-        const bgRgba   = this._settings.get_string('bg-color');
+        const bg       = this._settings.get_string('bg-color');
         const accent   = this._settings.get_string('accent-color');
         const radius   = this._settings.get_int('corner-radius');
-        const hideBar  = this._settings.get_boolean('hide-top-bar-center');
-        const style = `
-            .mertnotch-bg {
-                background-color: ${bgRgba};
-                border-radius: 0 0 ${radius}px ${radius}px;
-            }
-            .mertnotch-peek {
-                background-color: ${bgRgba};
-                border-radius: 0 0 ${radius}px ${radius}px;
-            }
-            .mertnotch-tab:active, .mertnotch-tab:active:hover {
-                background-color: ${accent};
-            }
-            .mertnotch-shelf-dest, .mertnotch-cal-when {
-                color: ${accent};
-            }
-            .mertnotch-bar-fill {
-                background-color: ${accent};
-            }
+        const bgStyle = `
+            background-color: ${bg};
+            border-radius: 0 0 ${radius}px ${radius}px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-top: 0;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
         `;
-        if (!this._styleBin) {
-            this._styleBin = new St.Widget({visible: false});
-            Main.layoutManager.addChrome(this._styleBin);
+        this._bg.set_style(bgStyle);
+
+        for (const [tid, btn] of Object.entries(this._tabButtons ?? {})) {
+            if (tid === this._activeTab) {
+                btn.set_style(`background-color: rgba(255,255,255,0.14); color: white; border-radius: 7px; box-shadow: 0 1px 2px rgba(0,0,0,0.35);`);
+            } else {
+                btn.set_style('background-color: transparent; color: rgba(255,255,255,0.58); border-radius: 7px;');
+            }
         }
-        this._styleBin.set_style(style);
+        this._accentColor = accent;
+        this._bgStyle = bgStyle;
+
+        this._updateBatteryIcon();
     }
 
     _hideDateMenuIfRequested() {
@@ -117,8 +112,8 @@ class Notch extends St.Widget {
         if (wantHide) {
             if (this._dmWasVisible === undefined) this._dmWasVisible = dm.container.visible;
             dm.container.visible = false;
-        } else {
-            if (this._dmWasVisible !== undefined) dm.container.visible = this._dmWasVisible;
+        } else if (this._dmWasVisible !== undefined) {
+            dm.container.visible = this._dmWasVisible;
         }
     }
 
@@ -130,12 +125,16 @@ class Notch extends St.Widget {
     }
 
     _onSettingChanged(key) {
-        if (key.startsWith('collapsed-') || key.startsWith('expanded-')) {
+        if (key.startsWith('collapsed-') || key.startsWith('expanded-') || key === 'corner-radius') {
             this._loadDims();
             if (!this._expanded && !this._peekActive) this.set_size(this._cw, this._ch);
             if (this._expanded) this.set_size(this._ew, this._eh);
+            this._applyColors();
         }
-        if (['bg-color', 'accent-color', 'corner-radius'].includes(key)) this._applyColors();
+        if (['bg-color', 'accent-color', 'corner-radius',
+             'battery-charging-color', 'battery-normal-color', 'battery-low-color'].includes(key)) {
+            this._applyColors();
+        }
         if (key === 'hide-datemenu') this._hideDateMenuIfRequested();
         if (key === 'clock-format' || key === 'show-seconds' || key === 'show-date') this._updateClocks();
     }
@@ -144,26 +143,55 @@ class Notch extends St.Widget {
         this._bg = new St.Widget({style_class: 'mertnotch-bg', x_expand: true, y_expand: true});
         this.add_child(this._bg);
 
+        /* collapsed layout:  [battery] [media]   HH:MM   [date]   [shelf#] */
         this._collapsed = new St.BoxLayout({
             style_class: 'mertnotch-collapsed',
             vertical: false,
-            x_align: Clutter.ActorAlign.CENTER,
-            y_align: Clutter.ActorAlign.CENTER,
-            x_expand: true,
-            y_expand: true,
+            x_expand: true, y_expand: true,
         });
         this.add_child(this._collapsed);
 
-        this._statusDot  = new St.Widget({style_class: 'mertnotch-dot', visible: false});
-        this._dateLabelC = new St.Label({text: '', style_class: 'mertnotch-date-mini'});
-        this._clockLabel = new St.Label({text: '', style_class: 'mertnotch-clock'});
-        this._shelfBadge = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false});
+        /* left cluster */
+        this._leftCluster = new St.BoxLayout({style_class: 'mertnotch-cluster mertnotch-left', vertical: false});
+        this._batteryIcon = new St.Icon({
+            icon_name: 'battery-full-symbolic',
+            icon_size: 14,
+            style_class: 'mertnotch-battery-icon',
+            visible: false,
+        });
+        this._mediaIcon = new St.Icon({
+            icon_name: 'audio-x-generic-symbolic',
+            icon_size: 14,
+            style_class: 'mertnotch-media-icon',
+            visible: false,
+        });
+        this._statusDot = new St.Widget({style_class: 'mertnotch-dot', visible: false});
+        this._leftCluster.add_child(this._batteryIcon);
+        this._leftCluster.add_child(this._mediaIcon);
+        this._leftCluster.add_child(this._statusDot);
 
-        this._collapsed.add_child(this._statusDot);
-        this._collapsed.add_child(this._dateLabelC);
-        this._collapsed.add_child(this._clockLabel);
-        this._collapsed.add_child(this._shelfBadge);
+        /* center clock */
+        this._centerCluster = new St.BoxLayout({
+            style_class: 'mertnotch-cluster mertnotch-center',
+            vertical: false,
+            x_expand: true,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        this._clockLabel = new St.Label({text: '', style_class: 'mertnotch-clock', y_align: Clutter.ActorAlign.CENTER});
+        this._centerCluster.add_child(this._clockLabel);
 
+        /* right cluster: date + shelf badge */
+        this._rightCluster = new St.BoxLayout({style_class: 'mertnotch-cluster mertnotch-right', vertical: false});
+        this._dateLabelC = new St.Label({text: '', style_class: 'mertnotch-date-mini', y_align: Clutter.ActorAlign.CENTER});
+        this._shelfBadge = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false, y_align: Clutter.ActorAlign.CENTER});
+        this._rightCluster.add_child(this._dateLabelC);
+        this._rightCluster.add_child(this._shelfBadge);
+
+        this._collapsed.add_child(this._leftCluster);
+        this._collapsed.add_child(this._centerCluster);
+        this._collapsed.add_child(this._rightCluster);
+
+        /* expanded layer */
         this._expandedLayer = new St.BoxLayout({
             style_class: 'mertnotch-expanded',
             vertical: true,
@@ -174,7 +202,7 @@ class Notch extends St.Widget {
         this.add_child(this._expandedLayer);
 
         this._header = new St.BoxLayout({style_class: 'mertnotch-header', vertical: false});
-        this._bigClock = new St.Label({text: '', style_class: 'mertnotch-big-clock'});
+        this._bigClock  = new St.Label({text: '', style_class: 'mertnotch-big-clock'});
         this._dateLabel = new St.Label({text: '', style_class: 'mertnotch-date'});
         this._header.add_child(this._bigClock);
         this._header.add_child(new St.Widget({x_expand: true}));
@@ -252,6 +280,7 @@ class Notch extends St.Widget {
         for (const m of Object.values(this._modules)) m.start?.();
         this._switchTab('system');
         this._startClock();
+        this._updateBatteryIcon();
     }
 
     stop() {
@@ -263,7 +292,6 @@ class Notch extends St.Widget {
         if (this._settingsSig) { this._settings.disconnect(this._settingsSig); this._settingsSig = 0; }
         if (this._xdndBeginId && Main.xdndHandler) { Main.xdndHandler.disconnect(this._xdndBeginId); this._xdndBeginId = 0; }
         if (this._xdndEndId   && Main.xdndHandler) { Main.xdndHandler.disconnect(this._xdndEndId);   this._xdndEndId   = 0; }
-        if (this._styleBin) { Main.layoutManager.removeChrome(this._styleBin); this._styleBin.destroy(); this._styleBin = null; }
     }
 
     _onDestroy() {
@@ -297,9 +325,12 @@ class Notch extends St.Widget {
         const now = new Date();
         const showSec   = this._settings.get_boolean('show-seconds');
         const showDate  = this._settings.get_boolean('show-date');
-        const timeOpts  = showSec
-            ? {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false}
-            : {hour: '2-digit', minute: '2-digit',                     hour12: false};
+        const h12       = this._settings.get_string('clock-format') === '12h';
+        const timeOpts = {
+            hour: '2-digit', minute: '2-digit',
+            hour12: h12,
+            ...(showSec ? {second: '2-digit'} : {}),
+        };
         const time = now.toLocaleTimeString([], timeOpts);
         this._clockLabel.text = time;
         this._bigClock.text   = time;
@@ -386,9 +417,15 @@ class Notch extends St.Widget {
 
     _switchTab(id) {
         this._activeTab = id;
+        const accent = this._accentColor ?? this._settings.get_string('accent-color');
         for (const [tid, btn] of Object.entries(this._tabButtons)) {
-            btn.remove_style_pseudo_class('active');
-            if (tid === id) btn.add_style_pseudo_class('active');
+            if (tid === id) {
+                btn.add_style_pseudo_class('active');
+                btn.set_style(`background-color: rgba(255,255,255,0.14); color: white; border-radius: 7px; box-shadow: 0 1px 2px rgba(0,0,0,0.35);`);
+            } else {
+                btn.remove_style_pseudo_class('active');
+                btn.set_style('background-color: transparent; color: rgba(255,255,255,0.58); border-radius: 7px;');
+            }
         }
         this._renderTab();
     }
@@ -410,7 +447,63 @@ class Notch extends St.Widget {
         const hot = stats.cpu > 85 || stats.ram > 90 || stats.temp > 85;
         this._statusDot.visible = hot;
         this._statusDot.set_style_class_name('mertnotch-dot' + (hot ? ' hot' : ''));
+        this._updateBatteryIcon(stats.battery);
         if (this._expanded && this._activeTab === 'system') this._renderTab();
+    }
+
+    _updateBatteryIcon(battery) {
+        battery = battery ?? this._latestStats?.battery;
+        if (!battery) { this._batteryIcon.visible = false; return; }
+        const cap = battery.capacity;
+        const status = (battery.status ?? '').toLowerCase();
+        const charging = status === 'charging' || status === 'full';
+        const low = cap < 20 && !charging;
+
+        let iconName = 'battery-good-symbolic';
+        if (charging)                iconName = cap >= 95 ? 'battery-full-charging-symbolic' : 'battery-good-charging-symbolic';
+        else if (cap >= 90)          iconName = 'battery-full-symbolic';
+        else if (cap >= 55)          iconName = 'battery-good-symbolic';
+        else if (cap >= 25)          iconName = 'battery-low-symbolic';
+        else                         iconName = 'battery-caution-symbolic';
+
+        const color = charging
+            ? this._settings.get_string('battery-charging-color')
+            : (low ? this._settings.get_string('battery-low-color')
+                   : this._settings.get_string('battery-normal-color'));
+        this._batteryIcon.icon_name = iconName;
+        this._batteryIcon.set_style(`color: ${color};`);
+        this._batteryIcon.visible = true;
+    }
+
+    _updateMedia(info) {
+        if (!info?.playing && !info?.paused) {
+            this._mediaIcon.visible = false;
+            return;
+        }
+        const iconName = this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic';
+        this._mediaIcon.icon_name = iconName;
+        this._mediaIcon.opacity = info.playing ? 255 : 150;
+        this._mediaIcon.visible = true;
+    }
+
+    _resolveMediaIcon(desktopEntry) {
+        if (!desktopEntry) return null;
+        const app = Gio.DesktopAppInfo.new(`${desktopEntry}.desktop`);
+        if (app) {
+            const gicon = app.get_icon();
+            if (gicon) {
+                const name = gicon.to_string?.();
+                if (name && !name.startsWith('/')) return name;
+            }
+        }
+        const fallback = {
+            spotify:         'spotify-client',
+            'org.gnome.Decibels': 'org.gnome.Decibels',
+            firefox:         'firefox',
+            vlc:             'vlc',
+            rhythmbox:       'rhythmbox',
+        }[desktopEntry.toLowerCase()];
+        return fallback ?? 'audio-x-generic-symbolic';
     }
 
     _updateShelfIndicator(n) {
@@ -424,6 +517,7 @@ class Notch extends St.Widget {
         const title = notif?.title ?? source?.title ?? 'Notification';
         const body  = notif?.bannerBodyText ?? notif?.body ?? '';
         const peek = new St.BoxLayout({style_class: 'mertnotch-peek', vertical: true, x_expand: true, y_expand: true});
+        peek.set_style(this._bgStyle);
         peek.add_child(new St.Label({text: title, style_class: 'mertnotch-peek-title'}));
         if (body) peek.add_child(new St.Label({text: body, style_class: 'mertnotch-peek-body'}));
         this.add_child(peek);
