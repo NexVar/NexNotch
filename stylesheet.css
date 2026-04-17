@@ -64,9 +64,71 @@
 .mertnotch-pomo-mini.idle {
     color: rgba(255, 255, 255, 0.38);
 }
-.mertnotch-pomo-mini.paused {
-    color: rgba(255, 200, 120, 0.75);
+.mertnotch-pomo-mini.paused { color: rgba(255, 200, 120, 0.75); }
+
+/* music pill — collapsed extended state */
+.mertnotch-music-pill {
+    spacing: 0;
+    padding: 0 6px 0 4px;
+    max-width: 280px;
 }
+.mertnotch-music-title {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px; font-weight: 600;
+}
+.mertnotch-music-sep {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+}
+.mertnotch-music-artist {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px; font-weight: 400;
+}
+
+/* system tab inline (compact) rows */
+.mertnotch-sys-body { spacing: 16px; padding-top: 4px; }
+.mertnotch-sys-left { spacing: 3px; }
+.mertnotch-sys-inline-row { spacing: 10px; padding: 2px 2px; }
+.mertnotch-sys-inline-label {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px; font-weight: 500;
+    min-width: 62px;
+}
+.mertnotch-sys-inline-value {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 11px; font-weight: 500;
+    font-feature-settings: "tnum";
+}
+
+/* music card in system tab */
+.mertnotch-music-card {
+    spacing: 6px; padding: 8px 10px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: 220px;
+}
+.mertnotch-music-card-top { spacing: 10px; }
+.mertnotch-music-art        { border-radius: 6px; }
+.mertnotch-music-art-fallback { color: rgba(255, 255, 255, 0.7); }
+.mertnotch-music-txt { spacing: 2px; }
+.mertnotch-music-card-title {
+    color: white; font-size: 12px; font-weight: 600;
+}
+.mertnotch-music-card-artist {
+    color: rgba(255, 255, 255, 0.6); font-size: 10px;
+}
+.mertnotch-music-ctrls { spacing: 10px; padding-top: 4px; }
+.mertnotch-music-btn {
+    color: rgba(255, 255, 255, 0.85);
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 0;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 13px;
+}
+.mertnotch-music-btn:hover { background-color: rgba(255, 255, 255, 0.15); color: white; }
+.mertnotch-music-btn.disabled { color: rgba(255, 255, 255, 0.25); }
 
 .mertnotch-bg.drag-active {
     border: 2px dashed rgba(120, 170, 255, 0.9);

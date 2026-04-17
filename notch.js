@@ -248,6 +248,20 @@ class Notch extends St.Widget {
         this._leftCluster.add_child(this._pomoLabel);
         this._leftCluster.add_child(this._batteryIcon);
         this._leftCluster.add_child(this._mediaIcon);
+        /* music pill — extends the collapsed notch with track title + artist
+           in the Dynamic Island / NotchNook style when MPRIS is active */
+        this._musicPill = new St.BoxLayout({
+            style_class: 'mertnotch-music-pill',
+            vertical: false,
+            visible: false,
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        this._musicTitle  = new St.Label({style_class: 'mertnotch-music-title'});
+        this._musicArtist = new St.Label({style_class: 'mertnotch-music-artist'});
+        this._musicPill.add_child(this._musicTitle);
+        this._musicPill.add_child(new St.Label({text: ' · ', style_class: 'mertnotch-music-sep'}));
+        this._musicPill.add_child(this._musicArtist);
+        this._leftCluster.add_child(this._musicPill);
 
         /* center clock */
         this._centerCluster = new St.BoxLayout({
@@ -595,6 +609,7 @@ class Notch extends St.Widget {
     _collapse() {
         this._modules?.notes?._releaseGrab?.();
         this._expanded = false;
+        this._modules?.system?.setFocused?.(false);
         this._collapsed.show();
         this.remove_all_transitions();
         const targetW = this._measureCollapsedWidth();
@@ -616,6 +631,9 @@ class Notch extends St.Widget {
             this._modules?.notes?._releaseGrab?.();
         }
         this._activeTab = id;
+        /* Bump system poll to user-selected fast rate only when user is
+           actually looking at the system tab, otherwise fall back to 3x */
+        this._modules?.system?.setFocused?.(this._expanded && id === 'system');
         const accent = this._accentColor ?? this._settings.get_string('accent-color');
         for (const [tid, btn] of Object.entries(this._tabButtons)) {
             if (tid === id) {
@@ -656,7 +674,13 @@ class Notch extends St.Widget {
             stats:    this._modules.stats,
             quick:    this._modules.quick,
         }[this._activeTab];
-        const child = mod?.render?.(this._activeTab);
+        /* System tab gets an optional music card passed in so the whole
+           bottom-right corner can be used for media controls when MPRIS
+           has an active player. */
+        const extraArg = this._activeTab === 'system'
+            ? this._buildMusicCard()
+            : this._activeTab;
+        const child = mod?.render?.(extraArg);
         this._content.set_child(child ?? new St.Label({text: '—', x_align: Clutter.ActorAlign.CENTER}));
         /* nudge height after child lays out */
         GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
@@ -713,16 +737,70 @@ class Notch extends St.Widget {
     }
 
     _updateMedia(info) {
-        const wasVisible = this._mediaIcon.visible;
+        this._latestMedia = info;
+        const wasIconVisible = this._mediaIcon.visible;
+        const wasPillVisible = this._musicPill?.visible;
         if (!info?.playing && !info?.paused) {
             this._mediaIcon.visible = false;
+            if (this._musicPill) this._musicPill.visible = false;
         } else {
             const iconName = this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic';
             this._mediaIcon.icon_name = iconName;
             this._mediaIcon.opacity = info.playing ? 255 : 150;
             this._mediaIcon.visible = true;
+            /* Dynamic Island: extend the collapsed pill with the track */
+            if (this._musicPill && info.title) {
+                const title = (info.title || '').slice(0, 24);
+                const artist = (info.artist || '').slice(0, 22);
+                this._musicTitle.text = title;
+                this._musicArtist.text = artist;
+                this._musicPill.visible = true;
+            } else if (this._musicPill) {
+                this._musicPill.visible = false;
+            }
         }
-        if (this._mediaIcon.visible !== wasVisible) this._resizeCollapsed();
+        if (this._mediaIcon.visible !== wasIconVisible ||
+            (this._musicPill && this._musicPill.visible !== wasPillVisible)) {
+            this._resizeCollapsed();
+        }
+        /* Live-refresh System tab if music card is visible there */
+        if (this._expanded && this._activeTab === 'system') this._renderTab();
+    }
+
+    _buildMusicCard() {
+        const info = this._latestMedia;
+        if (!info || (!info.playing && !info.paused)) return null;
+        const card = new St.BoxLayout({style_class: 'mertnotch-music-card', vertical: true});
+        const top = new St.BoxLayout({style_class: 'mertnotch-music-card-top'});
+        let art = null;
+        if (info.artUrl && info.artUrl.startsWith('file://')) {
+            try {
+                const path = decodeURIComponent(info.artUrl.slice(7));
+                art = new St.Icon({gicon: Gio.FileIcon.new(Gio.File.new_for_path(path)), icon_size: 44, style_class: 'mertnotch-music-art'});
+            } catch (_) {}
+        }
+        if (!art) {
+            art = new St.Icon({icon_name: this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic', icon_size: 32, style_class: 'mertnotch-music-art-fallback'});
+        }
+        top.add_child(art);
+        const txt = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'mertnotch-music-txt', y_align: Clutter.ActorAlign.CENTER});
+        txt.add_child(new St.Label({text: (info.title || 'Unknown').slice(0, 28), style_class: 'mertnotch-music-card-title'}));
+        txt.add_child(new St.Label({text: (info.artist || '').slice(0, 28), style_class: 'mertnotch-music-card-artist'}));
+        top.add_child(txt);
+        card.add_child(top);
+
+        const ctrls = new St.BoxLayout({style_class: 'mertnotch-music-ctrls', x_align: Clutter.ActorAlign.CENTER});
+        const mk = (label, cb, accName, enabled = true) => {
+            const b = new St.Button({style_class: 'mertnotch-music-btn', label, accessible_name: accName, can_focus: true, reactive: enabled});
+            if (!enabled) b.add_style_class_name('disabled');
+            if (enabled) b.connect('clicked', cb);
+            return b;
+        };
+        ctrls.add_child(mk('⏮', () => this._modules.mpris.previous(), 'Previous track', info.canPrev));
+        ctrls.add_child(mk(info.playing ? '⏸' : '▶', () => this._modules.mpris.playPause(), 'Play/pause', info.canPlay || info.canPause));
+        ctrls.add_child(mk('⏭', () => this._modules.mpris.next(), 'Next track', info.canNext));
+        card.add_child(ctrls);
+        return card;
     }
 
     _resolveMediaIcon(desktopEntry) {

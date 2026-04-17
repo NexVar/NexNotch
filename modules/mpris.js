@@ -13,10 +13,41 @@ const PLAYER_IFACE_XML = `
   <interface name="org.mpris.MediaPlayer2.Player">
     <property name="PlaybackStatus" type="s" access="read"/>
     <property name="Metadata"       type="a{sv}" access="read"/>
+    <property name="CanGoNext"      type="b" access="read"/>
+    <property name="CanGoPrevious"  type="b" access="read"/>
+    <property name="CanPlay"        type="b" access="read"/>
+    <property name="CanPause"       type="b" access="read"/>
+    <method name="PlayPause"/>
+    <method name="Next"/>
+    <method name="Previous"/>
+    <method name="Play"/>
+    <method name="Pause"/>
+    <method name="Stop"/>
   </interface>
 </node>`;
 
 const PlayerProxy = Gio.DBusProxy.makeProxyWrapper(PLAYER_IFACE_XML);
+
+function _unwrap(v) {
+    return (v && typeof v.deep_unpack === 'function') ? v.deep_unpack() : v;
+}
+
+function _extractMeta(metadata) {
+    if (!metadata) return {};
+    const get = (key) => {
+        const v = metadata[key];
+        if (!v) return null;
+        return _unwrap(v);
+    };
+    const artist = get('xesam:artist');
+    return {
+        title:  get('xesam:title')  ?? '',
+        artist: Array.isArray(artist) ? artist.join(', ') : (artist ?? ''),
+        album:  get('xesam:album')  ?? '',
+        artUrl: get('mpris:artUrl') ?? '',
+        length: get('mpris:length') ?? 0,
+    };
+}
 
 export const MprisWatcher = GObject.registerClass({
     Signals: {
@@ -45,7 +76,6 @@ export const MprisWatcher = GObject.registerClass({
                 if (newOwner && !oldOwner) this._addPlayer(name);
                 if (oldOwner && !newOwner) this._removePlayer(name);
             });
-
         this._listExistingPlayers().catch(e => logError(e, 'mertnotch:mpris'));
     }
 
@@ -115,20 +145,45 @@ export const MprisWatcher = GObject.registerClass({
                 if (!best && status === 'Paused') best = {name, proxy, status};
             } catch (_) {}
         }
-        if (!best) { this._active = null; this.emit('changed', {playing: false}); return; }
+        if (!best) {
+            this._active = null;
+            this.emit('changed', {playing: false, paused: false});
+            return;
+        }
         let iconName = 'audio-x-generic-symbolic';
         try {
             const desktop = best.proxy.DesktopEntry;
             if (desktop) iconName = desktop;
         } catch (_) {}
+        let meta = {};
+        try { meta = _extractMeta(best.proxy.Metadata); } catch (_) {}
+        let canNext = true, canPrev = true, canPlay = true, canPause = true;
+        try { canNext = best.proxy.CanGoNext !== false; } catch (_) {}
+        try { canPrev = best.proxy.CanGoPrevious !== false; } catch (_) {}
+        try { canPlay = best.proxy.CanPlay !== false; } catch (_) {}
+        try { canPause = best.proxy.CanPause !== false; } catch (_) {}
         this._active = best;
         this.emit('changed', {
             playing: best.status === 'Playing',
             paused:  best.status === 'Paused',
             icon: iconName,
             bus: best.name,
+            title:  meta.title,
+            artist: meta.artist,
+            album:  meta.album,
+            artUrl: meta.artUrl,
+            canNext, canPrev, canPlay, canPause,
         });
     }
 
     isActive() { return !!this._active; }
+
+    playPause() { this._callActive('PlayPauseRemote'); }
+    next()      { this._callActive('NextRemote'); }
+    previous()  { this._callActive('PreviousRemote'); }
+
+    _callActive(method) {
+        if (!this._active?.proxy) return;
+        try { this._active.proxy[method](() => {}); } catch (e) { logError(e, 'mertnotch:mpris:call'); }
+    }
 });

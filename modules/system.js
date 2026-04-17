@@ -38,18 +38,26 @@ export const SystemMonitor = GObject.registerClass({
     }
 
     start() {
+        this._focused = false;
         this._tick();
-        const interval = Math.max(1, this._settings.get_int('poll-interval')) * 1000;
-        this._timer = GLib.timeout_add(GLib.PRIORITY_LOW, interval, () => {
-            this._tick();
-            return GLib.SOURCE_CONTINUE;
-        });
+        this._restartTimer();
         this._settingsSig = this._settings.connect('changed::poll-interval', () => this._restartTimer());
+    }
+
+    /* called by notch when expanded+system-tab visible vs collapsed/other.
+       drops poll rate from the user-configured fast rate to 3x that when
+       nothing actually looks at the values, saving most of the per-second
+       /proc reads we used to do always. */
+    setFocused(focused) {
+        if (this._focused === focused) return;
+        this._focused = focused;
+        this._restartTimer();
     }
 
     _restartTimer() {
         if (this._timer) { GLib.source_remove(this._timer); this._timer = 0; }
-        const interval = Math.max(1, this._settings.get_int('poll-interval')) * 1000;
+        const base = Math.max(1, this._settings.get_int('poll-interval')) * 1000;
+        const interval = this._focused ? base : base * 3;
         this._timer = GLib.timeout_add(GLib.PRIORITY_LOW, interval, () => {
             this._tick();
             return GLib.SOURCE_CONTINUE;
@@ -274,13 +282,13 @@ export const SystemMonitor = GObject.registerClass({
         return {capacity, status, minutes, plugged};
     }
 
-    render() {
+    render(musicCard) {
         const s = this._stats;
         const box = new St.BoxLayout({style_class: 'mertnotch-sys', vertical: true, x_expand: true, y_expand: true});
 
-        /* ── top row: prominent headline stats (CPU · RAM · Uptime · Battery time) ── */
+        /* headline: CPU · RAM · Uptime · Battery */
         const headline = new St.BoxLayout({style_class: 'mertnotch-sys-headline', vertical: false, x_expand: true});
-        const cell = (label, value, cls) => {
+        const hcell = (label, value, cls) => {
             const c = new St.BoxLayout({style_class: 'mertnotch-sys-headline-cell', vertical: true, x_expand: true});
             c.add_child(new St.Label({text: label, style_class: 'mertnotch-sys-headline-label'}));
             const val = new St.Label({text: value, style_class: 'mertnotch-sys-headline-value'});
@@ -290,47 +298,40 @@ export const SystemMonitor = GObject.registerClass({
         };
         const cpuClass = s.cpu > 85 ? 'danger' : (s.cpu > 65 ? 'warn' : null);
         const ramClass = s.ram > 90 ? 'danger' : (s.ram > 75 ? 'warn' : null);
-        headline.add_child(cell('CPU',    `${s.cpu.toFixed(0)}%`, cpuClass));
-        headline.add_child(cell('RAM',    `${s.ram.toFixed(0)}%`, ramClass));
-        headline.add_child(cell('Uptime', this._upFmt(s.uptime)));
+        headline.add_child(hcell('CPU',    `${s.cpu.toFixed(0)}%`, cpuClass));
+        headline.add_child(hcell('RAM',    `${s.ram.toFixed(0)}%`, ramClass));
+        headline.add_child(hcell('Uptime', this._upFmt(s.uptime)));
         if (s.battery) {
             const timeStr = s.battery.minutes
                 ? (s.battery.status === 'Charging' ? `${this._timeFmt(s.battery.minutes)} to full` : this._timeFmt(s.battery.minutes))
                 : s.battery.status;
-            headline.add_child(cell('Battery', `${s.battery.capacity}% · ${timeStr}`));
+            headline.add_child(hcell('Battery', `${s.battery.capacity}% · ${timeStr}`));
         }
         box.add_child(headline);
 
-        /* ── detail grid: net / disk / temp / swap / load ── */
-        const grid = new Clutter.GridLayout();
-        const content = new St.Widget({layout_manager: grid, x_expand: true, style_class: 'mertnotch-sys-grid'});
-        let row = 0;
-        const add = (label, value, barPct) => {
-            const lbl = new St.Label({text: label, style_class: 'mertnotch-sys-label', x_expand: true});
-            const val = new St.Label({text: value, style_class: 'mertnotch-sys-value'});
-            grid.attach(lbl, 0, row, 1, 1);
-            grid.attach(val, 1, row, 1, 1);
-            if (barPct !== undefined) {
-                const bar = new St.Widget({style_class: 'mertnotch-bar', height: 3, x_expand: true});
-                const fill = new St.Widget({style_class: 'mertnotch-bar-fill', height: 3});
-                fill.set_width(Math.max(2, Math.floor(Math.min(100, barPct) * 3)));
-                if (barPct > 85) fill.add_style_class_name('danger');
-                else if (barPct > 65) fill.add_style_class_name('warn');
-                bar.add_child(fill);
-                grid.attach(bar, 0, row + 1, 2, 1);
-                row += 2;
-            } else row += 1;
-        };
+        /* body: compact 2-col stat grid on the left, optional music card
+           slotted into the right column. Each stat is "Label value" on one
+           line — frees up screen space per user feedback. */
+        const body = new St.BoxLayout({style_class: 'mertnotch-sys-body', vertical: false, x_expand: true, y_expand: true});
+        const leftCol = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'mertnotch-sys-left'});
+        const stats = [];
+        if (s.swap > 0)   stats.push(['Swap',  `${s.swap.toFixed(0)}%`]);
+        stats.push(['Net ↓',  this._kbFmt(s.net_rx)]);
+        stats.push(['Net ↑',  this._kbFmt(s.net_tx)]);
+        stats.push(['Disk ↓', this._kbFmt(s.disk_r)]);
+        stats.push(['Disk ↑', this._kbFmt(s.disk_w)]);
+        if (s.temp > 0)   stats.push(['Temp',  `${s.temp.toFixed(0)}°C`]);
+        stats.push(['Load', s.load.map(x => x.toFixed(2)).join(' ')]);
+        for (const [label, value] of stats) {
+            const row = new St.BoxLayout({style_class: 'mertnotch-sys-inline-row', vertical: false, x_expand: true});
+            row.add_child(new St.Label({text: label, style_class: 'mertnotch-sys-inline-label'}));
+            row.add_child(new St.Label({text: value, style_class: 'mertnotch-sys-inline-value', x_expand: true, x_align: Clutter.ActorAlign.END}));
+            leftCol.add_child(row);
+        }
+        body.add_child(leftCol);
+        if (musicCard) body.add_child(musicCard);
+        box.add_child(body);
 
-        if (s.swap > 0) add('Swap',   `${s.swap.toFixed(0)}%`, s.swap);
-        add('Net ↓',     `${this._kbFmt(s.net_rx)}`);
-        add('Net ↑',     `${this._kbFmt(s.net_tx)}`);
-        add('Disk ↓',    `${this._kbFmt(s.disk_r)}`);
-        add('Disk ↑',    `${this._kbFmt(s.disk_w)}`);
-        if (s.temp > 0) add('Temp',  `${s.temp.toFixed(0)}°C`);
-        add('Load',      s.load.map(x => x.toFixed(2)).join(' '));
-
-        box.add_child(content);
         return box;
     }
 
