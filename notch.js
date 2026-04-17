@@ -7,17 +7,17 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
-import {SystemMonitor} from './modules/system.js';
-import {DropShelf}     from './modules/dropshelf.js';
+import {SystemMonitor}   from './modules/system.js';
+import {DropShelf}       from './modules/dropshelf.js';
 import {NotificationPeek} from './modules/notifications.js';
-import {CalendarPeek}  from './modules/calendar.js';
+import {CalendarPeek}    from './modules/calendar.js';
 
-const COLLAPSED_W = 160;
+const COLLAPSED_W = 170;
 const COLLAPSED_H = 28;
-const EXPANDED_W  = 560;
-const EXPANDED_H  = 240;
+const EXPANDED_W  = 580;
+const EXPANDED_H  = 260;
 const HOVER_DELAY_MS = 220;
-const ANIM_MS = 220;
+const ANIM_MS = 260;
 const PEEK_DURATION_MS = 5500;
 
 export const Notch = GObject.registerClass(
@@ -39,14 +39,16 @@ class Notch extends St.Widget {
         this._extension = extension;
         this._settings = extension.getSettings();
 
-        this._expanded = false;
-        this._peekActive = false;
-        this._hoverTimeout = 0;
+        this._expanded    = false;
+        this._peekActive  = false;
+        this._hoverTimeout    = 0;
         this._collapseTimeout = 0;
+        this._clockTimer      = 0;
         this._activeTab = 'system';
 
         this._buildLayers();
         this._setupDnd();
+        this._hideDateMenu();
 
         this._modules = {
             system:        new SystemMonitor(this._settings),
@@ -55,10 +57,10 @@ class Notch extends St.Widget {
             calendar:      new CalendarPeek(this._settings),
         };
 
-        this._modules.system.connect('updated',        (_, s)       => this._onSystemUpdated(s));
-        this._modules.notifications.connect('peek',    (_, src, n)  => this._peekNotification(src, n));
-        this._modules.dropshelf.connect('count-changed', (_, n)     => this._updateShelfIndicator(n));
-        this._modules.calendar.connect('updated',      ()           => { if (this._expanded) this._renderTab(); });
+        this._modules.system.connect('updated',        (_, s)      => this._onSystemUpdated(s));
+        this._modules.notifications.connect('peek',    (_, src, n) => this._peekNotification(src, n));
+        this._modules.dropshelf.connect('count-changed', (_, n)    => this._updateShelfIndicator(n));
+        this._modules.calendar.connect('updated',      ()          => { if (this._expanded) this._renderTab(); });
 
         this.connect('enter-event',  () => this._scheduleExpand());
         this.connect('leave-event',  () => this._scheduleCollapse());
@@ -79,20 +81,30 @@ class Notch extends St.Widget {
         });
         this.add_child(this._collapsed);
 
-        this._indicator = new St.Label({text: '', style_class: 'mertnotch-indicator'});
-        this._shelfBadge = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false});
-        this._collapsed.add_child(this._indicator);
+        this._clockLabel   = new St.Label({text: this._formatClock(), style_class: 'mertnotch-clock'});
+        this._statusDot    = new St.Widget({style_class: 'mertnotch-dot', visible: false});
+        this._shelfBadge   = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false});
+
+        this._collapsed.add_child(this._statusDot);
+        this._collapsed.add_child(this._clockLabel);
         this._collapsed.add_child(this._shelfBadge);
 
         this._expandedLayer = new St.BoxLayout({
             style_class: 'mertnotch-expanded',
             vertical: true,
-            x_expand: true,
-            y_expand: true,
+            x_expand: true, y_expand: true,
             opacity: 0,
             visible: false,
         });
         this.add_child(this._expandedLayer);
+
+        this._header = new St.BoxLayout({style_class: 'mertnotch-header', vertical: false});
+        this._bigClock = new St.Label({text: '', style_class: 'mertnotch-big-clock'});
+        this._dateLabel = new St.Label({text: '', style_class: 'mertnotch-date'});
+        this._header.add_child(this._bigClock);
+        this._header.add_child(new St.Widget({x_expand: true}));
+        this._header.add_child(this._dateLabel);
+        this._expandedLayer.add_child(this._header);
 
         this._tabs = new St.BoxLayout({style_class: 'mertnotch-tabs', vertical: false});
         this._content = new St.Bin({style_class: 'mertnotch-content', x_expand: true, y_expand: true});
@@ -100,7 +112,7 @@ class Notch extends St.Widget {
         this._expandedLayer.add_child(this._content);
 
         this._tabButtons = {};
-        for (const id of ['system', 'shelf', 'calendar', 'tasks']) {
+        for (const id of ['system', 'calendar', 'tasks', 'shelf']) {
             const btn = new St.Button({
                 style_class: 'mertnotch-tab',
                 label: this._tabLabel(id),
@@ -115,18 +127,31 @@ class Notch extends St.Widget {
         this._peekLayer = null;
     }
 
-    _setupDnd() {
-        this._delegate = this;
+    _hideDateMenu() {
+        const dm = Main.panel.statusArea?.dateMenu;
+        if (dm?.container) {
+            this._dmWasVisible = dm.container.visible;
+            dm.container.visible = false;
+        }
     }
 
-    acceptDrop(source, _actor, _x, _y, _time) {
+    _restoreDateMenu() {
+        const dm = Main.panel.statusArea?.dateMenu;
+        if (dm?.container && this._dmWasVisible !== undefined) {
+            dm.container.visible = this._dmWasVisible;
+        }
+    }
+
+    _setupDnd() { this._delegate = this; }
+
+    acceptDrop(source) {
         const uris = this._extractUris(source);
         if (uris.length === 0) return false;
         for (const uri of uris) this._modules.dropshelf.addURI(uri);
         return true;
     }
 
-    handleDragOver(source, _actor, _x, _y, _time) {
+    handleDragOver(source) {
         const uris = this._extractUris(source);
         if (uris.length === 0) return DND.DragMotionResult.NO_DROP;
         if (!this._expanded) this._scheduleExpand();
@@ -147,42 +172,71 @@ class Notch extends St.Widget {
     }
 
     _tabLabel(id) {
-        return {system: 'System', shelf: 'Shelf', calendar: 'Calendar', tasks: 'Tasks'}[id] ?? id;
+        return {system: 'System', calendar: 'Calendar', tasks: 'Tasks', shelf: 'Shelf'}[id] ?? id;
     }
 
     start() {
         for (const m of Object.values(this._modules)) m.start?.();
         this._switchTab('system');
+        this._startClock();
     }
 
     stop() {
         this._clearHoverTimeout();
         this._clearCollapseTimeout();
+        this._stopClock();
         for (const m of Object.values(this._modules)) m.stop?.();
+        this._restoreDateMenu();
     }
 
     _onDestroy() {
         this._clearHoverTimeout();
         this._clearCollapseTimeout();
+        this._stopClock();
         for (const m of Object.values(this._modules)) m.destroy?.();
         this._modules = {};
     }
 
-    _clearHoverTimeout() {
-        if (this._hoverTimeout) { GLib.source_remove(this._hoverTimeout); this._hoverTimeout = 0; }
+    _startClock() {
+        this._updateClocks();
+        const now = new Date();
+        const msToNextMin = (60 - now.getSeconds()) * 1000 + (1000 - now.getMilliseconds());
+        this._clockTimer = GLib.timeout_add(GLib.PRIORITY_LOW, msToNextMin, () => {
+            this._updateClocks();
+            this._clockTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 60, () => {
+                this._updateClocks();
+                return GLib.SOURCE_CONTINUE;
+            });
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
-    _clearCollapseTimeout() {
-        if (this._collapseTimeout) { GLib.source_remove(this._collapseTimeout); this._collapseTimeout = 0; }
+    _stopClock() {
+        if (this._clockTimer) { GLib.source_remove(this._clockTimer); this._clockTimer = 0; }
     }
+
+    _updateClocks() {
+        this._clockLabel.text = this._formatClock();
+        this._bigClock.text   = this._formatClock();
+        this._dateLabel.text  = this._formatDate();
+    }
+
+    _formatClock() {
+        return new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
+    }
+
+    _formatDate() {
+        return new Date().toLocaleDateString([], {weekday: 'long', day: 'numeric', month: 'long'});
+    }
+
+    _clearHoverTimeout()    { if (this._hoverTimeout)    { GLib.source_remove(this._hoverTimeout);    this._hoverTimeout = 0; } }
+    _clearCollapseTimeout() { if (this._collapseTimeout) { GLib.source_remove(this._collapseTimeout); this._collapseTimeout = 0; } }
 
     _scheduleExpand() {
         if (this._expanded) { this._clearCollapseTimeout(); return; }
         this._clearHoverTimeout();
         this._hoverTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HOVER_DELAY_MS, () => {
-            this._hoverTimeout = 0;
-            this._expand();
-            return GLib.SOURCE_REMOVE;
+            this._hoverTimeout = 0; this._expand(); return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -190,7 +244,7 @@ class Notch extends St.Widget {
         this._clearHoverTimeout();
         if (!this._expanded) return;
         this._clearCollapseTimeout();
-        this._collapseTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+        this._collapseTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 180, () => {
             this._collapseTimeout = 0;
             if (!this.has_pointer) this._collapse();
             return GLib.SOURCE_REMOVE;
@@ -204,12 +258,13 @@ class Notch extends St.Widget {
         this.remove_all_transitions();
         this.ease({
             width: EXPANDED_W, height: EXPANDED_H,
-            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_EXPO,
         });
-        this._collapsed.ease({opacity: 0, duration: ANIM_MS / 2, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        this._collapsed.ease({opacity: 0, duration: ANIM_MS * 0.4, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => this._collapsed.hide()});
         this._expandedLayer.opacity = 0;
-        this._expandedLayer.ease({opacity: 255, duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this._expandedLayer.ease({opacity: 255, duration: ANIM_MS * 0.9, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this._updateClocks();
         this._renderTab();
     }
 
@@ -219,10 +274,10 @@ class Notch extends St.Widget {
         this.remove_all_transitions();
         this.ease({
             width: COLLAPSED_W, height: COLLAPSED_H,
-            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
+            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_EXPO,
         });
         this._collapsed.ease({opacity: 255, duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        this._expandedLayer.ease({opacity: 0, duration: ANIM_MS / 2, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        this._expandedLayer.ease({opacity: 0, duration: ANIM_MS * 0.4, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => { this._expandedLayer.visible = false; }});
     }
 
@@ -249,11 +304,9 @@ class Notch extends St.Widget {
 
     _onSystemUpdated(stats) {
         this._latestStats = stats;
-        if (stats.cpu > 85 || stats.ram > 90) {
-            this._indicator.add_style_class_name('hot');
-        } else {
-            this._indicator.remove_style_class_name('hot');
-        }
+        const hot = stats.cpu > 85 || stats.ram > 90 || stats.temp > 85;
+        this._statusDot.visible = hot;
+        this._statusDot.set_style_class_name('mertnotch-dot' + (hot ? ' hot' : ''));
         if (this._expanded && this._activeTab === 'system') this._renderTab();
     }
 
@@ -276,12 +329,10 @@ class Notch extends St.Widget {
         this._collapsed.hide();
 
         this.remove_all_transitions();
-        this.ease({width: 420, height: 68, duration: 180, mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+        this.ease({width: 440, height: 72, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
 
         this._peekTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, PEEK_DURATION_MS, () => {
-            this._peekTimer = 0;
-            this._dismissPeek(false);
-            return GLib.SOURCE_REMOVE;
+            this._peekTimer = 0; this._dismissPeek(false); return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -294,7 +345,7 @@ class Notch extends St.Widget {
             this._peekLayer = null;
             if (!this._expanded) {
                 this._collapsed.show();
-                this.ease({width: COLLAPSED_W, height: COLLAPSED_H, duration: 180, mode: Clutter.AnimationMode.EASE_OUT_CUBIC});
+                this.ease({width: COLLAPSED_W, height: COLLAPSED_H, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
             }
         };
         if (immediate) finalize();

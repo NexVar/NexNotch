@@ -1,73 +1,124 @@
+/* ——— base surface ——— */
+
 .mertnotch {
     background-color: transparent;
 }
 
 .mertnotch-bg {
-    background-color: rgba(0, 0, 0, 0.94);
-    border-radius: 0 0 16px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(14, 14, 18, 0.97);
+    background-gradient-end:   rgba(22, 22, 28, 0.94);
+    border-radius: 0 0 18px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-top: 0;
+    box-shadow:
+        0 12px 28px 0 rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
 }
+
+/* ——— collapsed pill ——— */
 
 .mertnotch-collapsed {
-    padding: 0 10px;
-    spacing: 6px;
-}
-
-.mertnotch-indicator {
-    color: rgba(255, 255, 255, 0.0);
-    font-size: 10px;
-    min-width: 4px;
-    min-height: 4px;
-}
-
-.mertnotch-indicator.hot {
-    color: rgba(255, 120, 90, 0.9);
-}
-
-.mertnotch-shelf-badge {
-    background-color: rgba(120, 170, 255, 0.3);
-    color: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    padding: 1px 6px;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.mertnotch-expanded {
-    padding: 10px 12px;
+    padding: 0 14px;
     spacing: 8px;
 }
 
+.mertnotch-clock {
+    color: rgba(255, 255, 255, 0.94);
+    font-family: "SF Pro Display", "Inter", "Cantarell", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    font-feature-settings: "tnum";
+}
+
+.mertnotch-dot {
+    background-color: rgba(255, 120, 90, 0.9);
+    border-radius: 999px;
+    width: 6px;
+    height: 6px;
+    box-shadow: 0 0 6px rgba(255, 120, 90, 0.7);
+}
+
+.mertnotch-dot.hot {
+    background-color: rgba(255, 90, 70, 1);
+}
+
+.mertnotch-shelf-badge {
+    background-color: rgba(120, 170, 255, 0.28);
+    color: rgba(255, 255, 255, 0.96);
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 14px;
+}
+
+/* ——— expanded panel ——— */
+
+.mertnotch-expanded {
+    padding: 12px 16px;
+    spacing: 10px;
+}
+
+.mertnotch-header {
+    spacing: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mertnotch-big-clock {
+    color: white;
+    font-family: "SF Pro Display", "Inter", "Cantarell", sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    font-feature-settings: "tnum";
+}
+
+.mertnotch-date {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    font-weight: 500;
+    padding-top: 8px;
+}
+
+/* ——— tab bar (segmented) ——— */
+
 .mertnotch-tabs {
-    spacing: 4px;
-    padding-bottom: 6px;
+    spacing: 2px;
+    padding: 3px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 9px;
 }
 
 .mertnotch-tab {
     color: rgba(255, 255, 255, 0.55);
     background-color: transparent;
     border-radius: 6px;
-    padding: 4px 10px;
+    padding: 5px 10px;
     font-size: 11px;
     font-weight: 600;
     border: 0;
+    transition-duration: 160ms;
 }
 
 .mertnotch-tab:hover {
     color: rgba(255, 255, 255, 0.85);
-    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .mertnotch-tab:active,
 .mertnotch-tab:active:hover {
     color: white;
-    background-color: rgba(120, 170, 255, 0.22);
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .mertnotch-content {
-    padding: 4px 2px;
+    padding: 6px 2px 2px 2px;
 }
+
+/* ——— system tab ——— */
 
 .mertnotch-sys {
     spacing: 2px;
@@ -77,85 +128,155 @@
     padding: 2px;
 }
 
-.mertnotch-sys-label,
-.mertnotch-cal-when {
-    color: rgba(255, 255, 255, 0.55);
+.mertnotch-sys-label {
+    color: rgba(255, 255, 255, 0.5);
     font-size: 11px;
-    min-width: 70px;
+    font-weight: 500;
+    min-width: 74px;
 }
 
-.mertnotch-sys-value,
-.mertnotch-cal-title {
-    color: rgba(255, 255, 255, 0.92);
+.mertnotch-sys-value {
+    color: rgba(255, 255, 255, 0.94);
     font-size: 11px;
+    font-weight: 500;
     font-feature-settings: "tnum";
 }
 
 .mertnotch-bar {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-radius: 2px;
-    margin: 1px 4px 3px 4px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    margin: 2px 4px 4px 4px;
+    height: 3px;
 }
 
 .mertnotch-bar-fill {
-    background-color: rgba(120, 170, 255, 0.75);
-    border-radius: 2px;
+    background-gradient-direction: horizontal;
+    background-gradient-start: rgba(120, 170, 255, 0.85);
+    background-gradient-end:   rgba(160, 190, 255, 0.85);
+    border-radius: 999px;
+    height: 3px;
+    transition-duration: 300ms;
 }
 
-.mertnotch-bar-fill.warn   { background-color: rgba(255, 190, 80, 0.85); }
-.mertnotch-bar-fill.danger { background-color: rgba(255, 110, 90, 0.9); }
+.mertnotch-bar-fill.warn {
+    background-gradient-start: rgba(255, 190, 80, 0.88);
+    background-gradient-end:   rgba(255, 210, 100, 0.88);
+}
+
+.mertnotch-bar-fill.danger {
+    background-gradient-start: rgba(255, 100, 80, 0.9);
+    background-gradient-end:   rgba(255, 140, 110, 0.9);
+}
+
+/* ——— calendar / tasks ——— */
 
 .mertnotch-cal-row,
-.mertnotch-task-row,
-.mertnotch-shelf-row {
-    padding: 3px 2px;
-    spacing: 8px;
+.mertnotch-task-row {
+    padding: 4px 2px;
+    spacing: 10px;
+    border-radius: 6px;
 }
 
-.mertnotch-empty {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 11px;
-    padding: 20px 10px;
-}
-
-.mertnotch-shelf-header {
-    padding: 2px 2px 6px 2px;
-    spacing: 8px;
-}
-
-.mertnotch-shelf-dest {
+.mertnotch-cal-when {
     color: rgba(120, 170, 255, 0.85);
     font-size: 10px;
     font-weight: 600;
+    min-width: 88px;
     letter-spacing: 0.3px;
 }
 
-.mertnotch-shelf-open {
-    color: rgba(255, 255, 255, 0.6);
+.mertnotch-cal-title {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.mertnotch-task-check {
+    color: rgba(140, 220, 140, 0.9);
+    min-width: 18px;
+    font-size: 12px;
+}
+
+.mertnotch-task-due {
+    color: rgba(255, 200, 120, 0.75);
     font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background-color: rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+}
+
+.mertnotch-empty {
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 24px 10px;
+}
+
+/* ——— drop shelf ——— */
+
+.mertnotch-shelf-header {
+    padding: 2px 2px 8px 2px;
+    spacing: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mertnotch-shelf-dest {
+    color: rgba(120, 170, 255, 0.9);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+
+.mertnotch-shelf-open {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.06);
     border: 0;
+    transition-duration: 160ms;
 }
 
 .mertnotch-shelf-open:hover {
     color: white;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.14);
 }
 
-.mertnotch-shelf-name { color: rgba(255, 255, 255, 0.92); font-size: 11px; }
-.mertnotch-shelf-name.uploading { color: rgba(255, 190, 80, 0.9); }
-.mertnotch-shelf-name.uploaded  { color: rgba(140, 220, 140, 0.9); }
-.mertnotch-shelf-name.error     { color: rgba(255, 110, 90, 0.9); }
+.mertnotch-shelf-row {
+    padding: 5px 4px;
+    spacing: 8px;
+    border-radius: 6px;
+    transition-duration: 120ms;
+}
 
-.mertnotch-shelf-state { color: rgba(255, 255, 255, 0.5); font-size: 10px; }
-.mertnotch-shelf-size  { color: rgba(255, 255, 255, 0.45); font-size: 10px; }
+.mertnotch-shelf-row:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.mertnotch-shelf-name {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.mertnotch-shelf-name.uploading { color: rgba(255, 190, 80, 0.95); }
+.mertnotch-shelf-name.uploaded  { color: rgba(140, 220, 140, 0.95); }
+.mertnotch-shelf-name.error     { color: rgba(255, 110, 90, 0.95); }
+
+.mertnotch-shelf-state {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+}
+
+.mertnotch-shelf-size {
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 10px;
+    font-feature-settings: "tnum";
+}
 
 .mertnotch-shelf-retry,
 .mertnotch-shelf-rm {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 13px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 14px;
     padding: 0 6px;
     border: 0;
     background-color: transparent;
@@ -164,15 +285,29 @@
 .mertnotch-shelf-rm:hover    { color: rgba(255, 120, 120, 1); }
 .mertnotch-shelf-retry:hover { color: rgba(120, 170, 255, 1); }
 
-.mertnotch-task-check { min-width: 16px; color: rgba(140, 220, 140, 0.9); }
-.mertnotch-task-due   { color: rgba(255, 200, 120, 0.75); font-size: 10px; }
+/* ——— peek (dynamic notification) ——— */
 
 .mertnotch-peek {
-    padding: 8px 14px;
-    spacing: 2px;
-    background-color: rgba(0, 0, 0, 0.94);
-    border-radius: 0 0 16px 16px;
+    padding: 10px 16px;
+    spacing: 3px;
+    background-gradient-direction: vertical;
+    background-gradient-start: rgba(14, 14, 18, 0.97);
+    background-gradient-end:   rgba(22, 22, 28, 0.94);
+    border-radius: 0 0 18px 18px;
+    box-shadow:
+        0 12px 28px 0 rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
-.mertnotch-peek-title { color: white; font-size: 12px; font-weight: 600; }
-.mertnotch-peek-body  { color: rgba(255, 255, 255, 0.7); font-size: 11px; }
+.mertnotch-peek-title {
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+}
+
+.mertnotch-peek-body {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 11px;
+    font-weight: 400;
+}
