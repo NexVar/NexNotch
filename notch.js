@@ -331,6 +331,7 @@ class Notch extends St.Widget {
         this._delegate = this;
         if (Main.xdndHandler) {
             this._xdndBeginId = Main.xdndHandler.connect('drag-begin', () => {
+                log('mertnotch: xdnd drag-begin received');
                 this._xdndActive = true;
                 if (!this._expanded) {
                     this._clearHoverTimeout();
@@ -342,10 +343,13 @@ class Notch extends St.Widget {
                 this._bg?.add_style_class_name('drag-active');
             });
             this._xdndEndId = Main.xdndHandler.connect('drag-end', () => {
+                log('mertnotch: xdnd drag-end received');
                 this._xdndActive = false;
                 this._bg?.remove_style_class_name('drag-active');
                 if (!this.hover) this._scheduleCollapse();
             });
+        } else {
+            log('mertnotch: Main.xdndHandler unavailable — external drag-drop will not work');
         }
         try {
             Main.wm.addKeybinding('shortcut-filepicker',
