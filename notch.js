@@ -70,6 +70,7 @@ class Notch extends St.Widget {
             quick:         new QuickHub(this._settings),
             stats:         new Stats(this._settings),
         };
+        this._modules.notes.setGrabActor(this);
 
         this._modules.system.connect('updated',             (_, s)      => this._onSystemUpdated(s));
         this._modules.notifications.connect('peek',         (_, src, n) => this._peekNotification(src, n));
@@ -223,6 +224,8 @@ class Notch extends St.Widget {
            user request — battery icon conveys charge, and user finds extra
            coloured dots redundant. Privacy state is still visible in the
            Quick tab. */
+        this._pomoLabel = new St.Label({text: '', style_class: 'mertnotch-pomo-mini', visible: false, y_align: Clutter.ActorAlign.CENTER});
+        this._leftCluster.add_child(this._pomoLabel);
         this._leftCluster.add_child(this._batteryIcon);
         this._leftCluster.add_child(this._mediaIcon);
 
@@ -240,8 +243,7 @@ class Notch extends St.Widget {
         this._rightCluster = new St.BoxLayout({style_class: 'mertnotch-cluster mertnotch-right', vertical: false});
         this._dateLabelC = new St.Label({text: '', style_class: 'mertnotch-date-mini', y_align: Clutter.ActorAlign.CENTER});
         this._shelfBadge = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false, y_align: Clutter.ActorAlign.CENTER});
-        this._pomoLabel = new St.Label({text: '', style_class: 'mertnotch-pomo-mini', visible: false, y_align: Clutter.ActorAlign.CENTER});
-        this._rightCluster.add_child(this._pomoLabel);
+        /* pomoLabel now lives in _leftCluster (user-preferred position) */
         this._rightCluster.add_child(this._dateLabelC);
         this._rightCluster.add_child(this._shelfBadge);
 
@@ -506,6 +508,7 @@ class Notch extends St.Widget {
     }
 
     _collapse() {
+        this._modules?.notes?._releaseGrab?.();
         this._expanded = false;
         this._collapsed.show();
         this.remove_all_transitions();
@@ -520,6 +523,9 @@ class Notch extends St.Widget {
     }
 
     _switchTab(id) {
+        if (this._activeTab === 'notes' && id !== 'notes') {
+            this._modules?.notes?._releaseGrab?.();
+        }
         this._activeTab = id;
         const accent = this._accentColor ?? this._settings.get_string('accent-color');
         for (const [tid, btn] of Object.entries(this._tabButtons)) {
@@ -562,22 +568,18 @@ class Notch extends St.Widget {
         if (!battery) { this._batteryIcon.visible = false; return; }
         const cap = battery.capacity;
         const status = (battery.status ?? '').toLowerCase();
+        const plugged = !!battery.plugged;
 
-        /* Desktops / fully-charged laptops report "not charging" or "full";
-           that's a resting, healthy state — don't paint it like a drain. */
         const draining = status === 'discharging';
-        const charging = status === 'charging';
+        const charging = status === 'charging' || (plugged && !draining && cap < 100);
         const low = draining && cap < 20;
 
-        /* On desktop (no real battery drain, status stuck at "not charging"
-           or unknown) we hide the icon entirely — it's noise. */
-        if (!draining && !charging && (status === 'not charging' || status === 'unknown' || status === 'full')) {
-            if (cap >= 95 || cap === 0) {
-                const wasVisible = this._batteryIcon.visible;
-                this._batteryIcon.visible = false;
-                if (wasVisible) this._resizeCollapsed();
-                return;
-            }
+        /* Desktop with no real battery drain: hide icon entirely. */
+        if (!draining && !plugged && cap === 0) {
+            const wasVisible = this._batteryIcon.visible;
+            this._batteryIcon.visible = false;
+            if (wasVisible) this._resizeCollapsed();
+            return;
         }
 
         let iconName;
@@ -588,10 +590,11 @@ class Notch extends St.Widget {
         else                  iconName = 'battery-caution-symbolic';
 
         let color;
-        if (charging)    color = this._settings.get_string('battery-charging-color');
-        else if (low)    color = this._settings.get_string('battery-low-color');
+        if (charging)      color = this._settings.get_string('battery-charging-color');
+        else if (plugged)  color = this._settings.get_string('battery-charging-color'); /* plugged + full → green */
+        else if (low)      color = this._settings.get_string('battery-low-color');
         else if (draining) color = this._settings.get_string('battery-normal-color');
-        else             color = 'rgba(255, 255, 255, 0.75)';   /* neutral — no alert */
+        else               color = 'rgba(255, 255, 255, 0.78)';
 
         const wasVisible = this._batteryIcon.visible;
         this._batteryIcon.icon_name = iconName;

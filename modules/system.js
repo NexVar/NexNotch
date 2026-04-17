@@ -230,10 +230,28 @@ export const SystemMonitor = GObject.registerClass({
         return null;
     }
 
+    _acOnline() {
+        try {
+            const dir = Gio.File.new_for_path('/sys/class/power_supply');
+            const iter = dir.enumerate_children('standard::*', Gio.FileQueryInfoFlags.NONE, null);
+            let info;
+            while ((info = iter.next_file(null))) {
+                const n = info.get_name();
+                const type = this._readFile(`/sys/class/power_supply/${n}/type`).trim();
+                if (type === 'Mains' || type === 'USB' || type === 'USB_PD') {
+                    const online = this._readFile(`/sys/class/power_supply/${n}/online`).trim();
+                    if (online === '1') return true;
+                }
+            }
+        } catch (_) {}
+        return false;
+    }
+
     _battery() {
         if (!this._batteryPath) return null;
         const capacity = Number(this._readFile(`${this._batteryPath}/capacity`).trim());
         const status = this._readFile(`${this._batteryPath}/status`).trim();
+        const plugged = this._acOnline();
 
         /* Remaining time estimate (like Vitals): energy_now / power_now,
            or charge_now / current_now depending on driver. */
@@ -253,7 +271,7 @@ export const SystemMonitor = GObject.registerClass({
                 minutes = Math.round(((energyFull - energyNow) / powerNow) * 60);
             }
         }
-        return {capacity, status, minutes};
+        return {capacity, status, minutes, plugged};
     }
 
     render() {
