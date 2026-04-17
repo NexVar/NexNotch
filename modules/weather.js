@@ -62,21 +62,48 @@ export const Weather = GObject.registerClass({
                 const bytes = session.send_and_read_finish(res);
                 const text = new TextDecoder().decode(bytes.get_data());
                 if (msg.status_code < 200 || msg.status_code >= 300) {
-                    log(`mertnotch:weather:${slot}: ${msg.status_code}`);
+                    this._lastError = `wttr.in ${msg.status_code}`;
+                    this.emit('updated');
                     return;
                 }
-                const data = JSON.parse(text);
+                let data;
+                try { data = JSON.parse(text); }
+                catch (_) {
+                    this._lastError = 'wttr.in returned non-JSON (rate-limited?)';
+                    this.emit('updated');
+                    return;
+                }
                 data._unit = unit;
                 if (slot === 2) this._data2 = data;
                 else            this._data  = data;
+                this._lastError = null;
                 this._lastFetch = Date.now();
                 this.emit('updated');
-            } catch (e) { logError(e, 'mertnotch:weather'); }
+            } catch (e) {
+                this._lastError = String(e?.message ?? e);
+                logError(e, 'mertnotch:weather');
+                this.emit('updated');
+            }
         });
     }
 
     render() {
         const box = new St.BoxLayout({style_class: 'mertnotch-weather', vertical: true, x_expand: true, y_expand: true});
+
+        /* error state — network failed or wttr.in 5xx */
+        if (this._lastError && !this._data && !this._data2) {
+            box.add_child(new St.Label({
+                text: 'Weather unavailable',
+                style_class: 'mertnotch-empty',
+                x_align: Clutter.ActorAlign.CENTER,
+            }));
+            box.add_child(new St.Label({
+                text: this._lastError,
+                style_class: 'mertnotch-empty',
+                x_align: Clutter.ActorAlign.CENTER,
+            }));
+            return box;
+        }
 
         /* location switcher if two configured */
         const loc2 = this._settings.get_string('weather-location-2');

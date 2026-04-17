@@ -292,6 +292,10 @@
     border: 0;
     transition-duration: 160ms;
 }
+.mertnotch-tab:focus {
+    border: 1px solid rgba(120, 170, 255, 0.7);
+    padding: 3px 5px;
+}
 .mertnotch-tab:hover { color: rgba(255, 255, 255, 0.9); }
 .mertnotch-tab:active,
 .mertnotch-tab:active:hover {
