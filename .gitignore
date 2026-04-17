@@ -4,3 +4,5 @@ schemas/gschemas.compiled
 *~
 .DS_Store
 node_modules/
+.omx/
+.codex/
