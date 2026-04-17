@@ -30,11 +30,17 @@ const CalendarProxy = Gio.DBusProxy.makeProxyWrapper(CALENDAR_SERVER_XML);
 
 let _ECal = null;
 let _EDataServer = null;
-try {
-    _ECal = (await import('gi://ECal?version=2.0')).default;
-    _EDataServer = (await import('gi://EDataServer?version=1.2')).default;
-} catch (e) {
-    log('mertnotch: libecal GIR not available, tasks disabled');
+let _eImportAttempted = false;
+
+async function _loadEdsBindings() {
+    if (_eImportAttempted) return;
+    _eImportAttempted = true;
+    try {
+        _ECal        = (await import('gi://ECal?version=2.0')).default;
+        _EDataServer = (await import('gi://EDataServer?version=1.2')).default;
+    } catch (e) {
+        log('mertnotch: libecal GIR not available, tasks disabled');
+    }
 }
 
 export const CalendarPeek = GObject.registerClass({
@@ -56,7 +62,7 @@ export const CalendarPeek = GObject.registerClass({
 
     start() {
         this._startCalendar();
-        this._startTasks();
+        _loadEdsBindings().then(() => this._startTasks());
     }
 
     stop() {
