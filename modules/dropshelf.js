@@ -222,11 +222,22 @@ export const DropShelf = GObject.registerClass({
         box.add_child(header);
 
         if (this._items.length === 0) {
-            box.add_child(new St.Label({
-                text: 'Drag files onto the notch to upload',
+            const empty = new St.BoxLayout({
                 style_class: 'mertnotch-empty',
+                vertical: true,
+                x_expand: true, y_expand: true,
+            });
+            empty.add_child(new St.Label({
+                text: 'No files on the shelf yet',
+                style_class: 'mertnotch-shelf-empty-title',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
+            empty.add_child(new St.Label({
+                text: 'Click + Add above, or press Super+Shift+D.\n(Wayland blocks external drag-and-drop to shell widgets,\nso dropping files straight onto the notch does not work.)',
+                style_class: 'mertnotch-shelf-empty-body',
+                x_align: Clutter.ActorAlign.CENTER,
+            }));
+            box.add_child(empty);
             return box;
         }
         for (const it of this._items) {

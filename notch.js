@@ -71,6 +71,11 @@ class Notch extends St.Widget {
             stats:         new Stats(this._settings),
         };
         this._modules.notes.setGrabActor(this);
+        /* show pomodoro mini label at startup with idle styling */
+        this._pomoUpdateId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._updatePomodoroIndicator();
+            return GLib.SOURCE_REMOVE;
+        });
 
         this._modules.system.connect('updated',             (_, s)      => this._onSystemUpdated(s));
         this._modules.notifications.connect('peek',         (_, src, n) => this._peekNotification(src, n));
@@ -497,14 +502,24 @@ class Notch extends St.Widget {
         this.remove_all_transitions();
         this.ease({
             width: this._ew, height: this._eh,
-            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_EXPO,
+            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_BACK,
         });
         this._collapsed.ease({opacity: 0, duration: ANIM_MS * 0.4, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => this._collapsed.hide()});
         this._expandedLayer.opacity = 0;
-        this._expandedLayer.ease({opacity: 255, duration: ANIM_MS * 0.9, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        this._expandedLayer.scale_x = 0.96; this._expandedLayer.scale_y = 0.96;
+        this._expandedLayer.set_pivot_point(0.5, 0);
+        this._expandedLayer.ease({
+            opacity: 255, scale_x: 1, scale_y: 1,
+            duration: ANIM_MS * 1.1, mode: Clutter.AnimationMode.EASE_OUT_BACK,
+        });
         this._updateClocks();
         this._renderTab();
+        /* Auto-fit height to content after it's laid out. */
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            if (this._expanded) this._resizeExpanded();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _collapse() {
@@ -515,11 +530,15 @@ class Notch extends St.Widget {
         const targetW = this._measureCollapsedWidth();
         this.ease({
             width: targetW, height: this._ch,
-            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_EXPO,
+            duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_CUBIC,
         });
         this._collapsed.ease({opacity: 255, duration: ANIM_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
-        this._expandedLayer.ease({opacity: 0, duration: ANIM_MS * 0.4, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            onComplete: () => { this._expandedLayer.visible = false; }});
+        this._expandedLayer.set_pivot_point(0.5, 0);
+        this._expandedLayer.ease({
+            opacity: 0, scale_x: 0.96, scale_y: 0.96,
+            duration: ANIM_MS * 0.5, mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => { this._expandedLayer.visible = false; },
+        });
     }
 
     _switchTab(id) {
@@ -540,6 +559,20 @@ class Notch extends St.Widget {
         this._renderTab();
     }
 
+    _resizeExpanded() {
+        if (!this._expanded || !this._expandedLayer) return;
+        try {
+            const [, natH] = this._expandedLayer.get_preferred_height(this._ew - 36);
+            const target = Math.max(this._eh, Math.min(640, natH + 32));
+            if (Math.abs(this.height - target) > 2) {
+                this.ease({
+                    width: this._ew, height: target,
+                    duration: 220, mode: Clutter.AnimationMode.EASE_OUT_BACK,
+                });
+            }
+        } catch (_) {}
+    }
+
     _renderTab() {
         if (!this._expanded) return;
         const mod = {
@@ -555,6 +588,11 @@ class Notch extends St.Widget {
         }[this._activeTab];
         const child = mod?.render?.(this._activeTab);
         this._content.set_child(child ?? new St.Label({text: '—', x_align: Clutter.ActorAlign.CENTER}));
+        /* nudge height after child lays out */
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            if (this._expanded) this._resizeExpanded();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _onSystemUpdated(stats) {
@@ -640,20 +678,37 @@ class Notch extends St.Widget {
         if (n > 0) { this._shelfBadge.text = `${n}`; this._shelfBadge.visible = true; }
         else       { this._shelfBadge.visible = false; }
         this._resizeCollapsed();
+        /* if the user is looking at the Shelf tab while items come in, refresh it */
+        if (this._expanded && this._activeTab === 'shelf') this._renderTab();
     }
 
     _updatePomodoroIndicator() {
         const p = this._modules?.pomodoro;
         if (!this._pomoLabel) return;
         const wasVisible = this._pomoLabel.visible;
-        if (!p || !p.isActive()) { this._pomoLabel.visible = false; }
-        else {
+        this._pomoLabel.remove_style_class_name('break');
+        this._pomoLabel.remove_style_class_name('idle');
+        this._pomoLabel.remove_style_class_name('paused');
+        if (!p) { this._pomoLabel.visible = false; }
+        else if (p.isActive()) {
             this._pomoLabel.text = p.formatRemain();
             this._pomoLabel.visible = true;
-            this._pomoLabel.remove_style_class_name('break');
             if (p.getState() === 'break' || p.getState() === 'longbreak') {
                 this._pomoLabel.add_style_class_name('break');
             }
+        } else if (p.getState() === 'paused') {
+            this._pomoLabel.text = `⏸ ${p.formatRemain()}`;
+            this._pomoLabel.visible = true;
+            this._pomoLabel.add_style_class_name('paused');
+        } else {
+            /* idle — show the active preset's work time faded so the label
+               is always visible once user has discovered the feature. */
+            const preset = this._settings.get_string('pomodoro-active-preset') || '25/5';
+            const m = preset.match(/^(\d+)/);
+            const work = m ? Number(m[1]) : 25;
+            this._pomoLabel.text = `${work}:00`;
+            this._pomoLabel.visible = true;
+            this._pomoLabel.add_style_class_name('idle');
         }
         if (this._pomoLabel.visible !== wasVisible) this._resizeCollapsed();
     }
@@ -671,7 +726,11 @@ class Notch extends St.Widget {
         }
 
         const title = notif?.title ?? source?.title ?? 'Notification';
-        const body  = notif?.bannerBodyText ?? notif?.body ?? '';
+        let body  = notif?.bannerBodyText ?? notif?.body ?? '';
+        /* clamp extremely long notifications */
+        const lines = body.split('\n');
+        if (lines.length > 6) body = lines.slice(0, 6).join('\n') + '\n…';
+        if (body.length > 360) body = body.slice(0, 360) + '…';
         const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 
         const peek = new St.BoxLayout({
@@ -714,9 +773,22 @@ class Notch extends St.Widget {
         this._collapsed.hide();
 
         this.remove_all_transitions();
-        this.ease({width: 520, height: 78, duration: 240, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
         peek.opacity = 0;
-        peek.ease({opacity: 255, duration: 240, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        peek.set_pivot_point(0.5, 0);
+        peek.scale_x = 0.94; peek.scale_y = 0.94;
+        peek.ease({
+            opacity: 255, scale_x: 1, scale_y: 1,
+            duration: 300, mode: Clutter.AnimationMode.EASE_OUT_BACK,
+        });
+        /* Fit size to actual text (multi-line messages, short toasts, etc.) */
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            if (!this._peekActive) return GLib.SOURCE_REMOVE;
+            const width = 540;
+            const [, natH] = peek.get_preferred_height(width - 40);
+            const h = Math.max(72, Math.min(260, natH + 20));
+            this.ease({width, height: h, duration: 260, mode: Clutter.AnimationMode.EASE_OUT_BACK});
+            return GLib.SOURCE_REMOVE;
+        });
 
         this._peekTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, PEEK_DURATION_MS, () => {
             this._peekTimer = 0; this._dismissPeek(false); return GLib.SOURCE_REMOVE;

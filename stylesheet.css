@@ -61,6 +61,12 @@
 .mertnotch-pomo-mini.break {
     color: rgba(255, 190, 80, 0.95);
 }
+.mertnotch-pomo-mini.idle {
+    color: rgba(255, 255, 255, 0.38);
+}
+.mertnotch-pomo-mini.paused {
+    color: rgba(255, 200, 120, 0.75);
+}
 
 .mertnotch-bg.drag-active {
     border: 2px dashed rgba(120, 170, 255, 0.9);
@@ -457,6 +463,19 @@
     font-weight: 700;
     letter-spacing: 0.4px;
 }
+.mertnotch-shelf-empty-title {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 20px 10px 6px 10px;
+}
+.mertnotch-shelf-empty-body {
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 0 10px 20px 10px;
+}
+
 .mertnotch-shelf-add,
 .mertnotch-shelf-open {
     color: rgba(255, 255, 255, 0.72);
