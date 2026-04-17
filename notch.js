@@ -555,9 +555,16 @@ class Notch extends St.Widget {
 
     _scheduleExpand() {
         if (this._expanded) { this._clearCollapseTimeout(); return; }
+        /* Don't hijack a notification click: when a peek is visible, the
+           user's hover intent is almost always "I'm moving to click the
+           banner", not "expand the notch". Suppress expansion while peek
+           is up; they can still click the peek body to activate it, or
+           wait for the peek to time out before hovering expands. */
+        if (this._peekActive) return;
         this._clearHoverTimeout();
         this._hoverTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HOVER_DELAY_MS, () => {
             this._hoverTimeout = 0;
+            if (this._peekActive) return GLib.SOURCE_REMOVE;
             if (this.hover || this._pointerInside() || this._xdndActive) this._expand();
             return GLib.SOURCE_REMOVE;
         });
