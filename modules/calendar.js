@@ -66,6 +66,7 @@ export const CalendarPeek = GObject.registerClass({
     }
 
     stop() {
+        this._stopped = true;
         if (this._refreshTimer) { GLib.source_remove(this._refreshTimer); this._refreshTimer = 0; }
         if (this._tasksTimer)   { GLib.source_remove(this._tasksTimer);   this._tasksTimer = 0; }
         if (this._proxy) {
@@ -122,6 +123,7 @@ export const CalendarPeek = GObject.registerClass({
 
     _startTasks() {
         if (!_ECal || !_EDataServer) return;
+        this._stopped = false;
         try {
             const registry = _EDataServer.SourceRegistry.new_sync(null);
             const sources = registry.list_sources(_EDataServer.SOURCE_EXTENSION_TASK_LIST);
@@ -131,6 +133,7 @@ export const CalendarPeek = GObject.registerClass({
                     (_, res) => this._onTaskClient(src, res));
             }
             this._tasksTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 600, () => {
+                if (this._stopped) return GLib.SOURCE_REMOVE;
                 this._refreshAllTasks();
                 return GLib.SOURCE_CONTINUE;
             });
@@ -138,6 +141,7 @@ export const CalendarPeek = GObject.registerClass({
     }
 
     _onTaskClient(source, res) {
+        if (this._stopped) return;
         try {
             const client = _ECal.Client.connect_finish(res);
             this._taskClients.push({source, client});
@@ -151,28 +155,34 @@ export const CalendarPeek = GObject.registerClass({
     }
 
     _refreshTaskClient(source, client) {
+        if (this._stopped) return;
         try {
             client.get_object_list(
-                '(and (not is-completed?) (not (contains? "any" "")))',
+                '(not (is-completed?))',
                 null,
                 (_, res) => {
+                    if (this._stopped) return;
                     try {
-                        const [, objs] = client.get_object_list_finish(res);
-                        const listName = source.get_display_name();
+                        const finish = client.get_object_list_finish(res);
+                        const objs = Array.isArray(finish) && finish.length === 2 ? finish[1] : finish;
+                        if (!objs) return;
+                        const listName = source.get_display_name?.() ?? '';
                         for (const icalComp of objs) {
-                            const summary  = icalComp.get_summary();
-                            const status   = icalComp.get_status();
-                            const dueProp  = icalComp.get_due();
-                            const due = dueProp && !dueProp.is_null_time()
-                                ? new Date(dueProp.get_value().as_timet() * 1000)
-                                : null;
-                            this._tasks.push({
-                                id: icalComp.get_uid(),
-                                title: summary ?? '(untitled)',
-                                done: status === 'COMPLETED',
-                                due,
-                                list: listName,
-                            });
+                            try {
+                                const summary  = icalComp.get_summary?.();
+                                const status   = icalComp.get_status?.();
+                                const dueProp  = icalComp.get_due?.();
+                                const due = dueProp && !dueProp.is_null_time?.()
+                                    ? new Date(dueProp.get_value().as_timet() * 1000)
+                                    : null;
+                                this._tasks.push({
+                                    id: icalComp.get_uid?.(),
+                                    title: summary ?? '(untitled)',
+                                    done: status === 'COMPLETED',
+                                    due,
+                                    list: listName,
+                                });
+                            } catch (_) {}
                         }
                         this._tasks.sort((a, b) => (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity));
                         this.emit('updated');

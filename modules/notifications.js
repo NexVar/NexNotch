@@ -57,14 +57,14 @@ export const NotificationPeek = GObject.registerClass({
         const timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, ttl, () => {
             this._pendingDismiss.delete(notif);
             try {
-                if (notif && !notif.destroyed) notif.destroy?.();
+                if (notif && typeof notif.destroy === 'function') notif.destroy();
             } catch (e) { logError(e, 'mertnotch:notifications'); }
             return GLib.SOURCE_REMOVE;
         });
         this._pendingDismiss.set(notif, timer);
 
         try {
-            notif.connect('destroy', () => {
+            notif.connect?.('destroy', () => {
                 const t = this._pendingDismiss.get(notif);
                 if (t) { GLib.source_remove(t); this._pendingDismiss.delete(notif); }
             });
