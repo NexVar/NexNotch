@@ -18,6 +18,9 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         window.add(this._clockPage(settings));
         window.add(await this._shelfPage(settings));
         window.add(this._notifPage(settings));
+        window.add(this._weatherPage(settings));
+        window.add(this._pomodoroPage(settings));
+        window.add(this._keybindPage(settings));
     }
 
     _generalPage(settings) {
@@ -80,6 +83,77 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         colorGroup.add(presets);
         page.add(colorGroup);
 
+        const battGroup = new Adw.PreferencesGroup({
+            title: 'Battery icon colors',
+            description: 'Colour of the battery indicator in the collapsed pill.',
+        });
+        battGroup.add(this._colorRow(settings, 'battery-charging-color', 'Charging'));
+        battGroup.add(this._colorRow(settings, 'battery-normal-color',   'Discharging'));
+        battGroup.add(this._colorRow(settings, 'battery-low-color',      'Low (<20%)'));
+        page.add(battGroup);
+
+        return page;
+    }
+
+    _weatherPage(settings) {
+        const page = new Adw.PreferencesPage({title: 'Weather', icon_name: 'weather-few-clouds-symbolic'});
+        const group = new Adw.PreferencesGroup({
+            title: 'Weather',
+            description: 'Powered by wttr.in — no API key needed.',
+        });
+        const loc = new Adw.EntryRow({title: 'Location (city name, or "lat,lon"; empty = IP auto-detect)'});
+        settings.bind('weather-location', loc, 'text', 0);
+        group.add(loc);
+
+        const unit = new Adw.ComboRow({title: 'Units'});
+        const unitModel = new Gtk.StringList();
+        unitModel.append('Metric (°C, km/h)');
+        unitModel.append('Imperial (°F, mph)');
+        unit.set_model(unitModel);
+        unit.set_selected(settings.get_string('weather-unit') === 'imperial' ? 1 : 0);
+        unit.connect('notify::selected', () => {
+            settings.set_string('weather-unit', unit.get_selected() === 1 ? 'imperial' : 'metric');
+        });
+        group.add(unit);
+
+        group.add(this._intRow(settings, 'weather-refresh', 'Refresh interval (min)', 5, 240, 5));
+        page.add(group);
+        return page;
+    }
+
+    _pomodoroPage(settings) {
+        const page = new Adw.PreferencesPage({title: 'Pomodoro', icon_name: 'alarm-symbolic'});
+        const group = new Adw.PreferencesGroup({title: 'Pomodoro timings'});
+        group.add(this._intRow(settings, 'pomodoro-work',   'Work duration (min)',       1, 180, 1));
+        group.add(this._intRow(settings, 'pomodoro-break',  'Short break (min)',         1,  60, 1));
+        group.add(this._intRow(settings, 'pomodoro-long',   'Long break (min)',          1,  60, 1));
+        group.add(this._intRow(settings, 'pomodoro-cycles', 'Cycles before long break',  1,  10, 1));
+        page.add(group);
+        return page;
+    }
+
+    _keybindPage(settings) {
+        const page = new Adw.PreferencesPage({title: 'Shortcuts', icon_name: 'input-keyboard-symbolic'});
+        const group = new Adw.PreferencesGroup({
+            title: 'Global shortcuts',
+            description: 'Edit with accelerator syntax, e.g. <Super><Shift>d',
+        });
+
+        const fp = new Adw.EntryRow({title: 'Open file picker → add to shelf'});
+        fp.set_text((settings.get_strv('shortcut-filepicker')[0]) ?? '');
+        fp.connect('changed', () => {
+            settings.set_strv('shortcut-filepicker', [fp.get_text()]);
+        });
+        group.add(fp);
+
+        const tg = new Adw.EntryRow({title: 'Toggle notch (expand / collapse)'});
+        tg.set_text((settings.get_strv('shortcut-toggle')[0]) ?? '');
+        tg.connect('changed', () => {
+            settings.set_strv('shortcut-toggle', [tg.get_text()]);
+        });
+        group.add(tg);
+
+        page.add(group);
         return page;
     }
 
