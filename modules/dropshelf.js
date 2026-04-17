@@ -12,7 +12,8 @@ const DRIVE_API  = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=
 
 export const DropShelf = GObject.registerClass({
     Signals: {
-        'count-changed': {param_types: [GObject.TYPE_INT]},
+        'count-changed':    {param_types: [GObject.TYPE_INT]},
+        'request-add-file': {},
     },
 }, class DropShelf extends GObject.Object {
     _init(settings) {
@@ -77,10 +78,11 @@ export const DropShelf = GObject.registerClass({
         const dest = this._settings.get_string('dropshelf-destination');
         const acct = this._settings.get_string('dropshelf-account');
         const folderId = this._settings.get_string('dropshelf-drive-folder') || 'root';
+        const deleteAfter = this._settings.get_boolean('dropshelf-delete-after');
         if (dest === 'local') return;
         if (dest === 'drive' || dest === 'local+drive') {
             if (!acct) { logError(new Error('No Drive account configured'), 'mertnotch:dropshelf'); return; }
-            this._uploadToDrive(item, acct, folderId, dest === 'drive');
+            this._uploadToDrive(item, acct, folderId, deleteAfter || dest === 'drive');
         }
     }
 
@@ -156,6 +158,9 @@ export const DropShelf = GObject.registerClass({
             style_class: 'mertnotch-shelf-dest',
             x_expand: true,
         }));
+        const addBtn = new St.Button({style_class: 'mertnotch-shelf-add', label: '+ Add'});
+        addBtn.connect('clicked', () => this.emit('request-add-file'));
+        header.add_child(addBtn);
         const openBtn = new St.Button({style_class: 'mertnotch-shelf-open', label: 'Open ↗'});
         openBtn.connect('clicked', () => {
             Gio.AppInfo.launch_default_for_uri(

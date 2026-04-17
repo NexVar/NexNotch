@@ -3,73 +3,47 @@
   <schema id="org.gnome.shell.extensions.mertnotch"
           path="/org/gnome/shell/extensions/mertnotch/">
 
-    <key name="show-system" type="b">
-      <default>true</default>
-      <summary>Show system monitor in expanded view</summary>
-    </key>
+    <!-- modules -->
+    <key name="show-system"        type="b"><default>true</default><summary>Show system monitor in expanded view</summary></key>
+    <key name="show-dropshelf"     type="b"><default>true</default><summary>Enable file drop shelf</summary></key>
+    <key name="show-notifications" type="b"><default>true</default><summary>Enable dynamic notification peek</summary></key>
+    <key name="show-calendar"      type="b"><default>true</default><summary>Enable Google Calendar peek</summary></key>
+    <key name="show-tasks"         type="b"><default>true</default><summary>Enable Google Tasks peek</summary></key>
 
-    <key name="show-dropshelf" type="b">
-      <default>true</default>
-      <summary>Enable file drop shelf</summary>
-    </key>
+    <!-- clock -->
+    <key name="hide-datemenu"    type="b"><default>true</default><summary>Hide the built-in GNOME clock / date menu</summary></key>
+    <key name="show-date"        type="b"><default>true</default><summary>Show date next to time in collapsed pill</summary></key>
+    <key name="show-seconds"     type="b"><default>false</default><summary>Include seconds in the clock</summary></key>
+    <key name="clock-format"     type="s"><default>"24h"</default><summary>Clock format (24h / 12h)</summary></key>
 
-    <key name="show-notifications" type="b">
-      <default>true</default>
-      <summary>Enable dynamic notification peek</summary>
-    </key>
+    <!-- size -->
+    <key name="collapsed-width"  type="i"><default>240</default><range min="140" max="480"/><summary>Collapsed notch width</summary></key>
+    <key name="collapsed-height" type="i"><default>32</default> <range min="24"  max="56"/> <summary>Collapsed notch height</summary></key>
+    <key name="expanded-width"   type="i"><default>640</default><range min="420" max="960"/><summary>Expanded notch width</summary></key>
+    <key name="expanded-height"  type="i"><default>280</default><range min="200" max="480"/><summary>Expanded notch height</summary></key>
+    <key name="corner-radius"    type="i"><default>20</default> <range min="0"   max="32"/> <summary>Bottom corner radius</summary></key>
 
-    <key name="show-calendar" type="b">
-      <default>true</default>
-      <summary>Enable Google Calendar peek</summary>
-    </key>
+    <!-- colors (CSS rgba strings so users can use any transparency) -->
+    <key name="bg-color"         type="s"><default>"rgba(0, 0, 0, 0.85)"</default><summary>Notch background color</summary></key>
+    <key name="accent-color"     type="s"><default>"rgba(120, 170, 255, 0.28)"</default><summary>Accent color (active tab, bar fill)</summary></key>
 
-    <key name="show-tasks" type="b">
-      <default>true</default>
-      <summary>Enable Google Tasks peek</summary>
-    </key>
+    <!-- performance -->
+    <key name="poll-interval"    type="i"><default>1</default><range min="1" max="30"/><summary>System monitor poll interval (seconds)</summary></key>
 
-    <key name="poll-interval" type="i">
-      <default>3</default>
-      <range min="1" max="30"/>
-      <summary>System monitor poll interval (seconds)</summary>
-    </key>
+    <!-- notifications -->
+    <key name="notif-auto-dismiss" type="i"><default>8</default><range min="0" max="120"/><summary>Auto-dismiss banner notifications after N seconds (0=disabled)</summary></key>
 
-    <key name="collapsed-width" type="i">
-      <default>160</default>
-      <range min="120" max="360"/>
-      <summary>Collapsed notch width in pixels</summary>
-    </key>
-
-    <key name="expanded-width" type="i">
-      <default>560</default>
-      <range min="400" max="900"/>
-      <summary>Expanded notch width in pixels</summary>
-    </key>
-
-    <key name="notif-auto-dismiss" type="i">
-      <default>8</default>
-      <range min="0" max="120"/>
-      <summary>Auto-dismiss banner notifications after N seconds (0 = disabled)</summary>
-    </key>
-
+    <!-- drop shelf -->
     <key name="dropshelf-destination" type="s">
-      <choices>
-        <choice value="local"/>
-        <choice value="drive"/>
-        <choice value="local+drive"/>
-      </choices>
+      <choices><choice value="local"/><choice value="drive"/><choice value="local+drive"/></choices>
       <default>"local"</default>
       <summary>Where dropped files go</summary>
     </key>
+    <key name="dropshelf-account"       type="s"><default>""</default>    <summary>GOA Google account email for Drive uploads</summary></key>
+    <key name="dropshelf-drive-folder"  type="s"><default>"root"</default><summary>Drive folder ID (root = My Drive)</summary></key>
+    <key name="dropshelf-delete-after"  type="b"><default>false</default> <summary>Delete local copy after successful upload</summary></key>
 
-    <key name="dropshelf-account" type="s">
-      <default>""</default>
-      <summary>GOA Google account email for Drive uploads</summary>
-    </key>
-
-    <key name="dropshelf-drive-folder" type="s">
-      <default>"root"</default>
-      <summary>Drive folder ID to upload into (root = My Drive)</summary>
-    </key>
+    <!-- misc -->
+    <key name="hide-top-bar-center"  type="b"><default>false</default><summary>(reserved) keep other center-box widgets hidden</summary></key>
   </schema>
 </schemalist>
