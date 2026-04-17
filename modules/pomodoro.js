@@ -143,6 +143,10 @@ export const Pomodoro = GObject.registerClass({
             planned_sec:  plannedSec,
             completed,
         });
+        /* guard against double-logging if reset fires after _onComplete has
+           already consumed this session but before the new startWork/startBreak
+           assigns a fresh _startedAt */
+        this._startedAt = null;
     }
 
     _notify(title, body) {
