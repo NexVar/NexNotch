@@ -3,7 +3,7 @@
    are overridden at runtime from gsettings (see notch.js _applyColors). */
 
 .mertnotch {
-    background-color: transparent;
+    background-color: rgb(0, 0, 0);
 }
 
 .mertnotch-bg {

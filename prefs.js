@@ -4,7 +4,7 @@ import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/prefs.js';
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {listGoogleAccounts} from './modules/goa.js';
 

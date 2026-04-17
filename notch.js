@@ -128,8 +128,9 @@ class Notch extends St.Widget {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
         `;
         this._bg.set_style(bgStyle);
-        // Override any blur-my-shell effect on panel by giving the notch its own opaque base
-        this.set_style(`background-color: transparent;`);
+        // Outer actor gets the same opaque background as belt-and-suspenders —
+        // blocks any blur-my-shell panel blur from bleeding through before _bg paints.
+        this.set_style(`background-color: ${bg};`);
 
         for (const [tid, btn] of Object.entries(this._tabButtons ?? {})) {
             if (tid === this._activeTab) {
