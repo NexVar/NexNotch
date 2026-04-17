@@ -27,9 +27,17 @@ export const Pomodoro = GObject.registerClass({
     stop() { if (this._timer) { GLib.source_remove(this._timer); this._timer = 0; } }
     destroy() { this.stop(); }
 
+    _activePreset() {
+        const s = this._settings.get_string('pomodoro-active-preset') || '25/5';
+        const m = s.match(/^(\d+)\s*\/\s*(\d+)/);
+        if (!m) return {work: 25, brk: 5};
+        return {work: Number(m[1]), brk: Number(m[2])};
+    }
+
     startWork() {
+        const {work} = this._activePreset();
         this._state  = 'work';
-        this._remain = this._settings.get_int('pomodoro-work') * 60;
+        this._remain = work * 60;
         this._cycle++;
         this._run();
     }
@@ -37,10 +45,11 @@ export const Pomodoro = GObject.registerClass({
     startBreak() {
         const cycles = this._settings.get_int('pomodoro-cycles');
         const isLong = this._cycle > 0 && this._cycle % cycles === 0;
+        const {brk} = this._activePreset();
         this._state  = isLong ? 'longbreak' : 'break';
         this._remain = isLong
             ? this._settings.get_int('pomodoro-long') * 60
-            : this._settings.get_int('pomodoro-break') * 60;
+            : brk * 60;
         this._run();
     }
 
@@ -116,6 +125,24 @@ export const Pomodoro = GObject.registerClass({
     render() {
         const box = new St.BoxLayout({style_class: 'mertnotch-pomo', vertical: true, x_expand: true, y_expand: true});
 
+        /* preset selector */
+        const presets = this._settings.get_strv('pomodoro-presets');
+        const activePreset = this._settings.get_string('pomodoro-active-preset');
+        const presetRow = new St.BoxLayout({style_class: 'mertnotch-pomo-presets', x_align: Clutter.ActorAlign.CENTER});
+        for (const p of presets) {
+            const btn = new St.Button({
+                style_class: 'mertnotch-pomo-preset' + (p === activePreset ? ' active' : ''),
+                label: p,
+            });
+            btn.connect('clicked', () => {
+                this._settings.set_string('pomodoro-active-preset', p);
+                if (this._state !== 'idle') this.reset();
+                this.emit('state', this._state);
+            });
+            presetRow.add_child(btn);
+        }
+        box.add_child(presetRow);
+
         const big = new St.Label({
             text: this._state === 'idle' ? '—:—' : this.formatRemain(),
             style_class: 'mertnotch-pomo-big',
@@ -130,8 +157,9 @@ export const Pomodoro = GObject.registerClass({
         });
         box.add_child(stateLabel);
 
+        const {work, brk} = this._activePreset();
         const cyclesLabel = new St.Label({
-            text: `Cycle ${this._cycle} · ${this._settings.get_int('pomodoro-work')}/${this._settings.get_int('pomodoro-break')}min`,
+            text: `Cycle ${this._cycle} · ${work}/${brk}min`,
             style_class: 'mertnotch-pomo-cycles',
             x_align: Clutter.ActorAlign.CENTER,
         });

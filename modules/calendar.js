@@ -225,7 +225,21 @@ export const CalendarPeek = GObject.registerClass({
             }));
             return box;
         }
-        if (this._tasks.length === 0) {
+
+        const filter = this._settings.get_strv('tasks-enabled-lists');
+        let tasks = this._tasks;
+        if (filter.length > 0) tasks = tasks.filter(t => filter.includes(t.list));
+
+        /* group by list */
+        const byList = new Map();
+        for (const t of tasks) {
+            const key = t.list || '(Default)';
+            if (!byList.has(key)) byList.set(key, []);
+            byList.get(key).push(t);
+        }
+        const lists = Array.from(byList.keys()).sort();
+
+        if (lists.length === 0) {
             box.add_child(new St.Label({
                 text: 'No pending tasks',
                 style_class: 'mertnotch-empty',
@@ -233,14 +247,39 @@ export const CalendarPeek = GObject.registerClass({
             }));
             return box;
         }
-        for (const t of this._tasks.slice(0, 9)) {
-            const row = new St.BoxLayout({style_class: 'mertnotch-task-row'});
-            row.add_child(new St.Label({text: t.done ? '☑' : '☐', style_class: 'mertnotch-task-check'}));
-            row.add_child(new St.Label({text: t.title, x_expand: true}));
-            if (t.due) row.add_child(new St.Label({text: this._formatDue(t.due), style_class: 'mertnotch-task-due'}));
-            box.add_child(row);
+
+        /* if more than one list, show segmented tab bar */
+        if (lists.length > 1) {
+            if (!lists.includes(this._activeTaskList)) this._activeTaskList = lists[0];
+            const listBar = new St.BoxLayout({style_class: 'mertnotch-task-lists', x_expand: true});
+            for (const name of lists) {
+                const active = name === this._activeTaskList;
+                const count = byList.get(name).length;
+                const btn = new St.Button({
+                    style_class: 'mertnotch-task-list-tab' + (active ? ' active' : ''),
+                    label: `${name} · ${count}`,
+                    x_expand: true,
+                });
+                btn.connect('clicked', () => { this._activeTaskList = name; this.emit('updated'); });
+                listBar.add_child(btn);
+            }
+            box.add_child(listBar);
+
+            const items = byList.get(this._activeTaskList) ?? [];
+            for (const t of items.slice(0, 8)) box.add_child(this._taskRow(t));
+        } else {
+            const items = byList.get(lists[0]) ?? [];
+            for (const t of items.slice(0, 9)) box.add_child(this._taskRow(t));
         }
         return box;
+    }
+
+    _taskRow(t) {
+        const row = new St.BoxLayout({style_class: 'mertnotch-task-row'});
+        row.add_child(new St.Label({text: t.done ? '☑' : '☐', style_class: 'mertnotch-task-check'}));
+        row.add_child(new St.Label({text: t.title, x_expand: true}));
+        if (t.due) row.add_child(new St.Label({text: this._formatDue(t.due), style_class: 'mertnotch-task-due'}));
+        return row;
     }
 
     _formatTime(ev) {

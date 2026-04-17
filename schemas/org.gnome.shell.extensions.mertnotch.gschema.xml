@@ -24,7 +24,7 @@
     <key name="corner-radius"    type="i"><default>20</default> <range min="0"   max="32"/> <summary>Bottom corner radius</summary></key>
 
     <!-- colors (CSS rgba strings so users can use any transparency) -->
-    <key name="bg-color"         type="s"><default>"rgba(0, 0, 0, 0.96)"</default><summary>Notch background color</summary></key>
+    <key name="bg-color"         type="s"><default>"rgba(0, 0, 0, 1.0)"</default><summary>Notch background color</summary></key>
     <key name="accent-color"     type="s"><default>"rgba(120, 170, 255, 0.32)"</default><summary>Accent color (active tab, bar fill)</summary></key>
 
     <!-- battery icon tinting -->
@@ -84,9 +84,43 @@
     </key>
 
     <!-- pomodoro -->
-    <key name="pomodoro-work"   type="i"><default>25</default><range min="1" max="180"/><summary>Pomodoro work duration (min)</summary></key>
-    <key name="pomodoro-break"  type="i"><default>5</default> <range min="1" max="60"/> <summary>Pomodoro short break (min)</summary></key>
+    <key name="pomodoro-work"   type="i"><default>25</default><range min="1" max="180"/><summary>(legacy) Pomodoro work duration</summary></key>
+    <key name="pomodoro-break"  type="i"><default>5</default> <range min="1" max="60"/> <summary>(legacy) Short break</summary></key>
     <key name="pomodoro-long"   type="i"><default>15</default><range min="1" max="60"/> <summary>Pomodoro long break (min)</summary></key>
     <key name="pomodoro-cycles" type="i"><default>4</default> <range min="1" max="10"/> <summary>Work cycles before long break</summary></key>
+
+    <!-- pomodoro presets: each entry is "work/break" e.g. "50/10" -->
+    <key name="pomodoro-presets" type="as">
+      <default>["50/10","25/5","10/2"]</default>
+      <summary>Preset work/break pairs (minutes)</summary>
+    </key>
+    <key name="pomodoro-active-preset" type="s">
+      <default>"25/5"</default>
+      <summary>Currently selected preset</summary>
+    </key>
+
+    <!-- weather dual location -->
+    <key name="weather-location-2" type="s">
+      <default>""</default>
+      <summary>Secondary weather location (empty = disabled)</summary>
+    </key>
+    <key name="weather-location-2-label" type="s">
+      <default>""</default>
+      <summary>Friendly label for secondary location (e.g. 'Home', 'Work')</summary>
+    </key>
+    <key name="weather-location-label" type="s">
+      <default>""</default>
+      <summary>Friendly label for primary location</summary>
+    </key>
+
+    <!-- calendar / tasks source filter (empty = all) -->
+    <key name="calendar-enabled-sources" type="as">
+      <default>[]</default>
+      <summary>If non-empty, only sync events from these GOA account emails</summary>
+    </key>
+    <key name="tasks-enabled-lists" type="as">
+      <default>[]</default>
+      <summary>If non-empty, only show tasks from these list display names</summary>
+    </key>
   </schema>
 </schemalist>

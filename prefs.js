@@ -20,6 +20,7 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         window.add(this._notifPage(settings));
         window.add(this._weatherPage(settings));
         window.add(this._pomodoroPage(settings));
+        window.add(await this._accountsPage(settings));
         window.add(this._keybindPage(settings));
     }
 
@@ -97,14 +98,32 @@ export default class MertNotchPrefs extends ExtensionPreferences {
 
     _weatherPage(settings) {
         const page = new Adw.PreferencesPage({title: 'Weather', icon_name: 'weather-few-clouds-symbolic'});
-        const group = new Adw.PreferencesGroup({
-            title: 'Weather',
-            description: 'Powered by wttr.in — no API key needed.',
-        });
-        const loc = new Adw.EntryRow({title: 'Location (city name, or "lat,lon"; empty = IP auto-detect)'});
-        settings.bind('weather-location', loc, 'text', 0);
-        group.add(loc);
 
+        const primary = new Adw.PreferencesGroup({
+            title: 'Primary location',
+            description: 'Powered by wttr.in — no API key needed. Empty location falls back to IP geolocation.',
+        });
+        const loc = new Adw.EntryRow({title: 'City name or "lat,lon"'});
+        settings.bind('weather-location', loc, 'text', 0);
+        primary.add(loc);
+        const lbl = new Adw.EntryRow({title: 'Friendly label (e.g. "Home")'});
+        settings.bind('weather-location-label', lbl, 'text', 0);
+        primary.add(lbl);
+        page.add(primary);
+
+        const secondary = new Adw.PreferencesGroup({
+            title: 'Secondary location',
+            description: 'For people splitting their week between two cities. Empty = disabled.',
+        });
+        const loc2 = new Adw.EntryRow({title: 'City name or "lat,lon"'});
+        settings.bind('weather-location-2', loc2, 'text', 0);
+        secondary.add(loc2);
+        const lbl2 = new Adw.EntryRow({title: 'Friendly label (e.g. "Work")'});
+        settings.bind('weather-location-2-label', lbl2, 'text', 0);
+        secondary.add(lbl2);
+        page.add(secondary);
+
+        const opts = new Adw.PreferencesGroup({title: 'Options'});
         const unit = new Adw.ComboRow({title: 'Units'});
         const unitModel = new Gtk.StringList();
         unitModel.append('Metric (°C, km/h)');
@@ -114,21 +133,151 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         unit.connect('notify::selected', () => {
             settings.set_string('weather-unit', unit.get_selected() === 1 ? 'imperial' : 'metric');
         });
-        group.add(unit);
-
-        group.add(this._intRow(settings, 'weather-refresh', 'Refresh interval (min)', 5, 240, 5));
-        page.add(group);
+        opts.add(unit);
+        opts.add(this._intRow(settings, 'weather-refresh', 'Refresh interval (min)', 5, 240, 5));
+        page.add(opts);
         return page;
     }
 
     _pomodoroPage(settings) {
         const page = new Adw.PreferencesPage({title: 'Pomodoro', icon_name: 'alarm-symbolic'});
-        const group = new Adw.PreferencesGroup({title: 'Pomodoro timings'});
-        group.add(this._intRow(settings, 'pomodoro-work',   'Work duration (min)',       1, 180, 1));
-        group.add(this._intRow(settings, 'pomodoro-break',  'Short break (min)',         1,  60, 1));
-        group.add(this._intRow(settings, 'pomodoro-long',   'Long break (min)',          1,  60, 1));
-        group.add(this._intRow(settings, 'pomodoro-cycles', 'Cycles before long break',  1,  10, 1));
+
+        const presetGroup = new Adw.PreferencesGroup({
+            title: 'Presets',
+            description: 'Each preset is "work/break" minutes. Click × to remove, + to add a new one.',
+        });
+
+        const rebuild = () => {
+            const children = [];
+            let row = presetGroup.get_first_child();
+            while (row) { children.push(row); row = row.get_next_sibling(); }
+            for (const c of children) presetGroup.remove(c);
+
+            const presets = settings.get_strv('pomodoro-presets');
+            const active  = settings.get_string('pomodoro-active-preset');
+
+            for (const p of presets) {
+                const r = new Adw.ActionRow({title: p});
+                if (p === active) r.set_subtitle('active');
+                const activate = new Gtk.Button({label: 'Use', css_classes: ['pill']});
+                activate.connect('clicked', () => {
+                    settings.set_string('pomodoro-active-preset', p);
+                    rebuild();
+                });
+                const remove = new Gtk.Button({icon_name: 'user-trash-symbolic', css_classes: ['flat']});
+                remove.connect('clicked', () => {
+                    const next = presets.filter(x => x !== p);
+                    if (next.length === 0) return;
+                    settings.set_strv('pomodoro-presets', next);
+                    if (p === active) settings.set_string('pomodoro-active-preset', next[0]);
+                    rebuild();
+                });
+                r.add_suffix(activate);
+                r.add_suffix(remove);
+                presetGroup.add(r);
+            }
+
+            const addRow = new Adw.ActionRow({title: 'New preset'});
+            const workEntry = new Gtk.SpinButton({
+                adjustment: new Gtk.Adjustment({lower: 1, upper: 180, step_increment: 1, value: 25}),
+                width_chars: 4,
+            });
+            const breakEntry = new Gtk.SpinButton({
+                adjustment: new Gtk.Adjustment({lower: 1, upper: 60, step_increment: 1, value: 5}),
+                width_chars: 4,
+            });
+            const addBtn = new Gtk.Button({label: 'Add', css_classes: ['suggested-action', 'pill']});
+            addBtn.connect('clicked', () => {
+                const w = workEntry.get_value_as_int();
+                const b = breakEntry.get_value_as_int();
+                const key = `${w}/${b}`;
+                const cur = settings.get_strv('pomodoro-presets');
+                if (!cur.includes(key)) {
+                    settings.set_strv('pomodoro-presets', [...cur, key]);
+                    rebuild();
+                }
+            });
+            addRow.add_suffix(workEntry);
+            addRow.add_suffix(new Gtk.Label({label: '/'}));
+            addRow.add_suffix(breakEntry);
+            addRow.add_suffix(addBtn);
+            presetGroup.add(addRow);
+        };
+        rebuild();
+        page.add(presetGroup);
+
+        const longGroup = new Adw.PreferencesGroup({title: 'Long break'});
+        longGroup.add(this._intRow(settings, 'pomodoro-long',   'Long break (min)',          1, 60, 1));
+        longGroup.add(this._intRow(settings, 'pomodoro-cycles', 'Cycles before long break',  1, 10, 1));
+        page.add(longGroup);
+
+        return page;
+    }
+
+    async _accountsPage(settings) {
+        const page = new Adw.PreferencesPage({title: 'Accounts', icon_name: 'avatar-default-symbolic'});
+
+        const group = new Adw.PreferencesGroup({
+            title: 'Google (via GNOME Online Accounts)',
+            description: 'Calendar and Tasks data flow through GOA + evolution-data-server. Add or remove accounts from GNOME Settings → Online Accounts. Toggle which accounts this extension actively syncs below.',
+        });
+
+        const accounts = await listGoogleAccounts().catch(() => []);
+        const enabled = settings.get_strv('calendar-enabled-sources');
+
+        if (accounts.length === 0) {
+            const empty = new Adw.ActionRow({
+                title: 'No Google accounts connected',
+                subtitle: 'Click below to open GNOME Online Accounts and add one',
+            });
+            const btn = new Gtk.Button({label: 'Open GNOME Settings', css_classes: ['suggested-action', 'pill']});
+            btn.connect('clicked', () => {
+                Gio.Subprocess.new(['gnome-control-center', 'online-accounts'], 0);
+            });
+            empty.add_suffix(btn);
+            group.add(empty);
+        } else {
+            for (const a of accounts) {
+                const row = new Adw.SwitchRow({
+                    title: a.email,
+                    subtitle: `Calendar ${a.calendarDisabled ? 'off' : 'on'} · Tasks ${a.todoDisabled ? 'off' : 'on'}`,
+                });
+                row.set_active(enabled.length === 0 || enabled.includes(a.email));
+                row.connect('notify::active', () => {
+                    const cur = new Set(settings.get_strv('calendar-enabled-sources'));
+                    if (row.get_active()) cur.add(a.email);
+                    else                  cur.delete(a.email);
+                    /* empty = all (legacy). if user disables some, emit explicit list */
+                    if (cur.size === accounts.length) settings.set_strv('calendar-enabled-sources', []);
+                    else settings.set_strv('calendar-enabled-sources', Array.from(cur));
+                });
+                group.add(row);
+            }
+            const manageBtn = new Adw.ActionRow({title: 'Manage accounts'});
+            const open = new Gtk.Button({label: 'GNOME Settings', css_classes: ['pill']});
+            open.connect('clicked', () => {
+                Gio.Subprocess.new(['gnome-control-center', 'online-accounts'], 0);
+            });
+            manageBtn.add_suffix(open);
+            group.add(manageBtn);
+        }
+
         page.add(group);
+
+        const tasksGroup = new Adw.PreferencesGroup({
+            title: 'Google Tasks lists',
+            description: 'Comma-separated list of task-list names to include. Empty shows all.',
+        });
+        const tasksEntry = new Adw.EntryRow({title: 'Allowed lists (comma-separated)'});
+        tasksEntry.set_text(settings.get_strv('tasks-enabled-lists').join(', '));
+        tasksEntry.connect('changed', () => {
+            const raw = tasksEntry.get_text() ?? '';
+            const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
+            settings.set_strv('tasks-enabled-lists', arr);
+        });
+        tasksGroup.add(tasksEntry);
+        page.add(tasksGroup);
+
         return page;
     }
 

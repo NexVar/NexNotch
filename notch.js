@@ -428,8 +428,12 @@ class Notch extends St.Widget {
         try {
             const [px, py] = global.get_pointer();
             const [ax, ay] = this.get_transformed_position();
-            const [aw, ah] = this.get_transformed_size();
-            return px >= ax && px <= ax + aw && py >= ay && py <= ay + ah;
+            let aw, ah;
+            if (this._expanded) { aw = this._ew; ah = this._eh; }
+            else                { [aw, ah] = this.get_transformed_size(); }
+            const margin = 8;
+            return px >= (ax - margin) && px <= (ax + aw + margin) &&
+                   py >= (ay - margin) && py <= (ay + ah + margin);
         } catch (_) { return this.hover; }
     }
 
@@ -449,7 +453,7 @@ class Notch extends St.Widget {
         this._clearCollapseTimeout();
         this._collapseTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, COLLAPSE_DELAY_MS, () => {
             this._collapseTimeout = 0;
-            if (this.hover || this._pointerInside() || this._xdndActive) {
+            if (this.hover || this._pointerInside() || this._xdndActive || this._notesFocused) {
                 this._scheduleCollapse();
                 return GLib.SOURCE_REMOVE;
             }
