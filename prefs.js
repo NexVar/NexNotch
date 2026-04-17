@@ -66,22 +66,24 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         colorGroup.add(this._colorRow(settings, 'bg-color',     'Background color'));
         colorGroup.add(this._colorRow(settings, 'accent-color', 'Accent color'));
 
-        const presets = new Adw.ActionRow({title: 'Presets'});
+        const presetRow = new Adw.ActionRow({title: 'Presets', subtitle: 'One-click theme swap'});
+        const presetBox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 4, halign: Gtk.Align.END, valign: Gtk.Align.CENTER});
         for (const [label, bg, ac] of [
-            ['Apple black',  'rgba(0, 0, 0, 0.85)',        'rgba(120, 170, 255, 0.28)'],
-            ['True black',   'rgba(0, 0, 0, 1.00)',        'rgba(140, 190, 255, 0.35)'],
-            ['Graphite',     'rgba(22, 22, 26, 0.92)',     'rgba(180, 180, 190, 0.22)'],
-            ['Nord',         'rgba(46, 52, 64, 0.92)',     'rgba(136, 192, 208, 0.30)'],
-            ['Dracula',      'rgba(40, 42, 54, 0.92)',     'rgba(189, 147, 249, 0.32)'],
+            ['Apple',    'rgba(0, 0, 0, 0.85)',    'rgba(120, 170, 255, 0.28)'],
+            ['True',     'rgba(0, 0, 0, 1.00)',    'rgba(140, 190, 255, 0.35)'],
+            ['Graphite', 'rgba(22, 22, 26, 0.92)', 'rgba(180, 180, 190, 0.22)'],
+            ['Nord',     'rgba(46, 52, 64, 0.92)', 'rgba(136, 192, 208, 0.30)'],
+            ['Dracula',  'rgba(40, 42, 54, 0.92)', 'rgba(189, 147, 249, 0.32)'],
         ]) {
-            const btn = new Gtk.Button({label, css_classes: ['pill']});
+            const btn = new Gtk.Button({label, css_classes: ['flat']});
             btn.connect('clicked', () => {
                 settings.set_string('bg-color', bg);
                 settings.set_string('accent-color', ac);
             });
-            presets.add_suffix(btn);
+            presetBox.append(btn);
         }
-        colorGroup.add(presets);
+        presetRow.add_suffix(presetBox);
+        colorGroup.add(presetRow);
         page.add(colorGroup);
 
         const battGroup = new Adw.PreferencesGroup({
@@ -90,7 +92,7 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         });
         battGroup.add(this._colorRow(settings, 'battery-charging-color', 'Charging'));
         battGroup.add(this._colorRow(settings, 'battery-normal-color',   'Discharging'));
-        battGroup.add(this._colorRow(settings, 'battery-low-color',      'Low (<20%)'));
+        battGroup.add(this._colorRow(settings, 'battery-low-color',      'Low battery'));
         page.add(battGroup);
 
         return page;
@@ -101,9 +103,9 @@ export default class MertNotchPrefs extends ExtensionPreferences {
 
         const primary = new Adw.PreferencesGroup({
             title: 'Primary location',
-            description: 'Powered by wttr.in — no API key needed. Empty location falls back to IP geolocation.',
+            description: 'Powered by wttr.in — no API key. Accepts: city ("Istanbul"), district ("Kadıköy, Istanbul"), neighbourhood ("Beşiktaş, Istanbul"), coordinates ("41.02,28.99"), airport code ("IST"), or a ~-prefixed place name ("~Eiffel Tower"). Empty = IP geolocation.',
         });
-        const loc = new Adw.EntryRow({title: 'City name or "lat,lon"'});
+        const loc = new Adw.EntryRow({title: 'Location (city / district / coords)'});
         settings.bind('weather-location', loc, 'text', 0);
         primary.add(loc);
         const lbl = new Adw.EntryRow({title: 'Friendly label (e.g. "Home")'});
@@ -113,9 +115,9 @@ export default class MertNotchPrefs extends ExtensionPreferences {
 
         const secondary = new Adw.PreferencesGroup({
             title: 'Secondary location',
-            description: 'For people splitting their week between two cities. Empty = disabled.',
+            description: 'For people splitting their week between two cities (or neighbourhoods). Same format as primary. Empty = disabled.',
         });
-        const loc2 = new Adw.EntryRow({title: 'City name or "lat,lon"'});
+        const loc2 = new Adw.EntryRow({title: 'Location (city / district / coords)'});
         settings.bind('weather-location-2', loc2, 'text', 0);
         secondary.add(loc2);
         const lbl2 = new Adw.EntryRow({title: 'Friendly label (e.g. "Work")'});
@@ -222,8 +224,23 @@ export default class MertNotchPrefs extends ExtensionPreferences {
             description: 'Calendar and Tasks data flow through GOA + evolution-data-server. Add or remove accounts from GNOME Settings → Online Accounts. Toggle which accounts this extension actively syncs below.',
         });
 
-        const accounts = await listGoogleAccounts().catch(() => []);
+        let accounts = [];
+        let loadErr = null;
+        try {
+            accounts = await listGoogleAccounts();
+        } catch (e) {
+            loadErr = e;
+            console.error('mertnotch prefs: listGoogleAccounts failed', e?.message ?? e);
+        }
         const enabled = settings.get_strv('calendar-enabled-sources');
+
+        if (loadErr) {
+            const err = new Adw.ActionRow({
+                title: 'Could not read GOA accounts',
+                subtitle: String(loadErr?.message ?? loadErr),
+            });
+            group.add(err);
+        }
 
         if (accounts.length === 0) {
             const empty = new Adw.ActionRow({
@@ -338,19 +355,57 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         const destRow = new Adw.ComboRow({title: 'Destination'});
         const destModel = new Gtk.StringList();
         destModel.append('Local shelf only');
-        destModel.append('Google Drive');
-        destModel.append('Local + Google Drive');
+        destModel.append('Folder (e.g. a mounted Drive folder)');
+        destModel.append('Google Drive via OAuth');
+        destModel.append('Local + Google Drive via OAuth');
         destRow.set_model(destModel);
-        const destMap = ['local', 'drive', 'local+drive'];
+        const destMap = ['local', 'folder', 'drive-oauth', 'local+drive-oauth'];
         destRow.set_selected(Math.max(0, destMap.indexOf(settings.get_string('dropshelf-destination'))));
         destRow.connect('notify::selected', () => {
             settings.set_string('dropshelf-destination', destMap[destRow.get_selected()]);
         });
         destGroup.add(destRow);
 
-        const acctRow = new Adw.ComboRow({title: 'Google account (for Drive)'});
+        /* folder destination picker */
+        const folderRow = new Adw.ActionRow({
+            title: 'Destination folder',
+            subtitle: settings.get_string('dropshelf-folder') || '(not set)',
+        });
+        const browseBtn = new Gtk.Button({label: 'Browse…', css_classes: ['flat']});
+        browseBtn.connect('clicked', () => {
+            const dialog = new Gtk.FileDialog({title: 'Pick destination folder'});
+            dialog.select_folder(browseBtn.get_root(), null, (dlg, res) => {
+                try {
+                    const f = dlg.select_folder_finish(res);
+                    if (f) {
+                        const path = f.get_path();
+                        settings.set_string('dropshelf-folder', path);
+                        folderRow.set_subtitle(path);
+                    }
+                } catch (_) {}
+            });
+        });
+        folderRow.add_suffix(browseBtn);
+        destGroup.add(folderRow);
+
+        destGroup.add(this._boolRow(settings, 'dropshelf-delete-after',
+            'Delete local cache copy after successful dispatch'));
+
+        page.add(destGroup);
+
+        const oauthGroup = new Adw.PreferencesGroup({
+            title: 'Google Drive via OAuth (legacy)',
+            description: 'Only needed if your Drive is NOT already mounted as a filesystem. Most users will use "Folder" above pointing to their mounted Drive.',
+        });
+
+        const acctRow = new Adw.ComboRow({title: 'Google account'});
         const acctModel = new Gtk.StringList();
-        const accounts = await listGoogleAccounts().catch(() => []);
+        let accounts = [];
+        try {
+            accounts = await listGoogleAccounts();
+        } catch (e) {
+            console.error('mertnotch prefs: listGoogleAccounts failed', e);
+        }
         const acctEmails = accounts.map(a => a.email);
         if (acctEmails.length === 0) acctModel.append('(no Google accounts in GOA)');
         else for (const e of acctEmails) acctModel.append(e);
@@ -361,16 +416,13 @@ export default class MertNotchPrefs extends ExtensionPreferences {
             const idx = acctRow.get_selected();
             if (acctEmails[idx]) settings.set_string('dropshelf-account', acctEmails[idx]);
         });
-        destGroup.add(acctRow);
+        oauthGroup.add(acctRow);
 
-        const folderRow = new Adw.EntryRow({title: 'Drive folder ID (root = My Drive)'});
-        settings.bind('dropshelf-drive-folder', folderRow, 'text', 0);
-        destGroup.add(folderRow);
+        const driveFolderRow = new Adw.EntryRow({title: 'Drive folder ID (root = My Drive)'});
+        settings.bind('dropshelf-drive-folder', driveFolderRow, 'text', 0);
+        oauthGroup.add(driveFolderRow);
 
-        destGroup.add(this._boolRow(settings, 'dropshelf-delete-after',
-            'Delete local copy after successful Drive upload'));
-
-        page.add(destGroup);
+        page.add(oauthGroup);
         return page;
     }
 
@@ -378,10 +430,33 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         const page = new Adw.PreferencesPage({title: 'Notifications', icon_name: 'preferences-system-notifications-symbolic'});
         const group = new Adw.PreferencesGroup({
             title: 'Notifications',
-            description: 'MertNotch force-closes non-critical banners after this timeout. Fixes the Fedora-45+ bug where banners never auto-dismiss.',
+            description: 'MertNotch shows a dynamic peek inside the notch AND force-closes non-critical banners. Fixes the Fedora-45+ bug where banners never auto-dismiss.',
         });
         group.add(this._intRow(settings, 'notif-auto-dismiss', 'Auto-dismiss after (s, 0 = off)', 0, 120, 1));
+        group.add(this._boolRow(settings, 'notif-suppress-native',
+            'Suppress the native banner when notch peek shows',
+            'Your eyes only need to watch the notch.'));
         page.add(group);
+
+        const dndGroup = new Adw.PreferencesGroup({
+            title: 'Do Not Disturb',
+            description: 'Toggle from the notch Quick tab. This mirrors the GNOME "Show banners" setting, so it also affects other apps.',
+        });
+        const dndRow = new Adw.ActionRow({
+            title: 'System DND state',
+            subtitle: 'Read-only reflection of org.gnome.desktop.notifications.show-banners',
+        });
+        try {
+            const ns = new Gio.Settings({schema_id: 'org.gnome.desktop.notifications'});
+            const lbl = new Gtk.Label({label: ns.get_boolean('show-banners') ? 'OFF (banners shown)' : 'ON (banners hidden)'});
+            ns.connect('changed::show-banners', () => {
+                lbl.label = ns.get_boolean('show-banners') ? 'OFF (banners shown)' : 'ON (banners hidden)';
+            });
+            dndRow.add_suffix(lbl);
+        } catch (_) {}
+        dndGroup.add(dndRow);
+        page.add(dndGroup);
+
         return page;
     }
 

@@ -76,14 +76,66 @@ export const DropShelf = GObject.registerClass({
 
     _dispatch(item) {
         const dest = this._settings.get_string('dropshelf-destination');
+        const folder = this._settings.get_string('dropshelf-folder');
         const acct = this._settings.get_string('dropshelf-account');
         const folderId = this._settings.get_string('dropshelf-drive-folder') || 'root';
         const deleteAfter = this._settings.get_boolean('dropshelf-delete-after');
         if (dest === 'local') return;
-        if (dest === 'drive' || dest === 'local+drive') {
-            if (!acct) { logError(new Error('No Drive account configured'), 'mertnotch:dropshelf'); return; }
-            this._uploadToDrive(item, acct, folderId, deleteAfter || dest === 'drive');
+        if (dest === 'folder') {
+            if (!folder) { logError(new Error('No destination folder configured'), 'mertnotch:dropshelf'); return; }
+            this._copyToFolder(item, folder, deleteAfter);
         }
+        if (dest === 'drive-oauth' || dest === 'local+drive-oauth') {
+            if (!acct) { logError(new Error('No Drive account configured'), 'mertnotch:dropshelf'); return; }
+            this._uploadToDrive(item, acct, folderId, deleteAfter || dest === 'drive-oauth');
+        }
+    }
+
+    _copyToFolder(item, folderPath, deleteAfter) {
+        item.state = 'uploading';
+        this.emit('count-changed', this._items.length);
+        try {
+            const destDir = Gio.File.new_for_path(folderPath);
+            if (!destDir.query_exists(null)) {
+                try { destDir.make_directory_with_parents(null); } catch (_) {}
+            }
+            const src = Gio.File.new_for_path(item.path);
+            const target = destDir.get_child(this._safeBasename(destDir, item.name));
+            src.copy_async(target, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, null, null, (_, res) => {
+                try {
+                    src.copy_finish(res);
+                    item.state = 'uploaded';
+                    if (deleteAfter) {
+                        try { src.delete(null); } catch (_) {}
+                        this._items = this._items.filter(i => i.path !== item.path);
+                    }
+                    this.emit('count-changed', this._items.length);
+                } catch (e) {
+                    item.state = 'error';
+                    item.error = String(e?.message ?? e);
+                    this.emit('count-changed', this._items.length);
+                    logError(e, 'mertnotch:dropshelf:folder-copy');
+                }
+            });
+        } catch (e) {
+            item.state = 'error';
+            item.error = String(e?.message ?? e);
+            this.emit('count-changed', this._items.length);
+            logError(e, 'mertnotch:dropshelf:folder-copy-setup');
+        }
+    }
+
+    _safeBasename(dir, name) {
+        let n = name;
+        let i = 0;
+        while (dir.get_child(n).query_exists(null) && i < 100) {
+            i++;
+            const dot = name.lastIndexOf('.');
+            const base = dot > 0 ? name.slice(0, dot) : name;
+            const ext  = dot > 0 ? name.slice(dot) : '';
+            n = `${base}-${i}${ext}`;
+        }
+        return n;
     }
 
     async _uploadToDrive(item, accountEmail, folderId, deleteAfter) {
@@ -201,8 +253,13 @@ export const DropShelf = GObject.registerClass({
 
     _destLabel(dest, acct) {
         if (dest === 'local') return 'Local shelf only';
-        if (dest === 'drive') return `Drive (${acct || 'no account'})`;
-        if (dest === 'local+drive') return `Local + Drive (${acct || 'no account'})`;
+        if (dest === 'folder') {
+            const f = this._settings.get_string('dropshelf-folder');
+            const short = f ? f.replace(GLib.get_home_dir(), '~') : 'unset';
+            return `→ ${short}`;
+        }
+        if (dest === 'drive-oauth') return `Drive OAuth (${acct || 'no account'})`;
+        if (dest === 'local+drive-oauth') return `Local + Drive OAuth (${acct || 'no account'})`;
         return dest;
     }
 

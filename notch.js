@@ -128,9 +128,17 @@ class Notch extends St.Widget {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
         `;
         this._bg.set_style(bgStyle);
-        // Outer actor gets the same opaque background as belt-and-suspenders —
-        // blocks any blur-my-shell panel blur from bleeding through before _bg paints.
         this.set_style(`background-color: ${bg};`);
+
+        /* Clutter.Color belt — bypasses CSS entirely so blur-my-shell/other
+           panel effects cannot leak through. Applied on top of set_style. */
+        try {
+            const [ok, col] = Clutter.Color.from_string(bg);
+            if (ok) {
+                this._bg.set_background_color(col);
+                this.set_background_color(col);
+            }
+        } catch (_) {}
 
         for (const [tid, btn] of Object.entries(this._tabButtons ?? {})) {
             if (tid === this._activeTab) {
@@ -634,6 +642,10 @@ class Notch extends St.Widget {
     _peekNotification(source, notif) {
         if (this._expanded) return;
         this._dismissPeek(true);
+        /* suppress native banner if user opted in */
+        if (this._settings.get_boolean('notif-suppress-native')) {
+            try { Main.messageTray._banner?.close?.(); } catch (_) {}
+        }
         const title = notif?.title ?? source?.title ?? 'Notification';
         const body  = notif?.bannerBodyText ?? notif?.body ?? '';
         const peek = new St.BoxLayout({style_class: 'mertnotch-peek', vertical: true, x_expand: true, y_expand: true});

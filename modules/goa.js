@@ -31,18 +31,20 @@ export async function listGoogleAccounts() {
                 catch (e) { reject(e); }
             });
     });
-    const [objects] = reply.deepUnpack();
+    const [objects] = reply.deep_unpack();
     const accounts = [];
+    const unwrap = v => (v && typeof v.deep_unpack === 'function') ? v.deep_unpack() : v;
     for (const [path, ifaces] of Object.entries(objects)) {
         const acct = ifaces['org.gnome.OnlineAccounts.Account'];
         if (!acct) continue;
-        if (acct.ProviderType !== 'google') continue;
+        const providerType = unwrap(acct.ProviderType);
+        if (providerType !== 'google') continue;
         accounts.push({
             path,
-            email: acct.Identity,
-            filesDisabled: acct.FilesDisabled ?? false,
-            calendarDisabled: acct.CalendarDisabled ?? false,
-            todoDisabled: acct.TodoDisabled ?? false,
+            email: unwrap(acct.Identity),
+            filesDisabled:    unwrap(acct.FilesDisabled)    ?? false,
+            calendarDisabled: unwrap(acct.CalendarDisabled) ?? false,
+            todoDisabled:     unwrap(acct.TodoDisabled)     ?? false,
         });
     }
     return accounts;

@@ -26,6 +26,9 @@ export const QuickHub = GObject.registerClass({
         this._btDevices = [];
         this._kbLayout = '';
         this._poller = 0;
+        try {
+            this._dndSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.notifications'});
+        } catch (_) { this._dndSettings = null; }
     }
 
     start() {
@@ -144,7 +147,25 @@ export const QuickHub = GObject.registerClass({
             }
         }
 
-        box.add_child(new St.Label({text: 'Actions', style_class: 'mertnotch-quick-section'}));
+        box.add_child(new St.Label({text: 'Focus', style_class: 'mertnotch-quick-section'}));
+        const focusRow = new St.BoxLayout({style_class: 'mertnotch-quick-actions'});
+        const dndOn = this._dndSettings ? !this._dndSettings.get_boolean('show-banners') : false;
+        const dndBtn = new St.Button({
+            style_class: 'mertnotch-quick-action' + (dndOn ? ' active' : ''),
+            label: dndOn ? 'DND: On' : 'DND: Off',
+        });
+        dndBtn.connect('clicked', () => {
+            if (!this._dndSettings) return;
+            const cur = this._dndSettings.get_boolean('show-banners');
+            this._dndSettings.set_boolean('show-banners', !cur);
+            dndBtn.label = cur ? 'DND: On' : 'DND: Off';
+            dndBtn.remove_style_class_name('active');
+            if (cur) dndBtn.add_style_class_name('active');
+        });
+        focusRow.add_child(dndBtn);
+        box.add_child(focusRow);
+
+        box.add_child(new St.Label({text: 'System', style_class: 'mertnotch-quick-section'}));
         const actions = new St.BoxLayout({style_class: 'mertnotch-quick-actions'});
         actions.add_child(this._actionButton('Lock',      () => this._run(['loginctl', 'lock-session'])));
         actions.add_child(this._actionButton('Suspend',   () => this._run(['systemctl', 'suspend'])));
