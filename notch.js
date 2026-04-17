@@ -116,7 +116,8 @@ class Notch extends St.Widget {
     }
 
     _applyColors() {
-        const bg       = this._settings.get_string('bg-color');
+        let bg = this._settings.get_string('bg-color') || '';
+        if (!bg.match(/^rgba?\(/)) bg = 'rgb(0, 0, 0)';
         const accent   = this._settings.get_string('accent-color');
         const radius   = this._settings.get_int('corner-radius');
         const bgStyle = `
@@ -127,6 +128,8 @@ class Notch extends St.Widget {
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
         `;
         this._bg.set_style(bgStyle);
+        // Override any blur-my-shell effect on panel by giving the notch its own opaque base
+        this.set_style(`background-color: transparent;`);
 
         for (const [tid, btn] of Object.entries(this._tabButtons ?? {})) {
             if (tid === this._activeTab) {

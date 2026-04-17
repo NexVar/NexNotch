@@ -7,7 +7,7 @@
 }
 
 .mertnotch-bg {
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgb(0, 0, 0);
     border-radius: 0 0 20px 20px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-top: 0;
@@ -445,7 +445,7 @@
 .mertnotch-peek {
     padding: 10px 18px;
     spacing: 4px;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgb(0, 0, 0);
     border-radius: 0 0 20px 20px;
     box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.45);
 }
