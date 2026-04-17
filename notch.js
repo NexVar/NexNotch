@@ -786,6 +786,8 @@ class Notch extends St.Widget {
             style_class: 'mertnotch-peek-dismiss',
             label: '✕',
             y_align: Clutter.ActorAlign.CENTER,
+            accessible_name: 'Dismiss notification',
+            can_focus: true,
         });
         dismissBtn.connect('clicked', () => this._dismissPeek(false));
         /* Stop the click from bubbling up to the peek (which would activate

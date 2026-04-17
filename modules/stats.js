@@ -10,11 +10,22 @@ class Stats extends GObject.Object {
     _init(settings) {
         super._init();
         this._settings = settings;
+        this._cached = null;
+        this._cachedAt = 0;
+        this._cacheTtlMs = 30000;
     }
 
     start() {}
     stop() {}
     destroy() {}
+
+    _getSessions() {
+        const now = GLib.get_monotonic_time() / 1000;
+        if (this._cached && (now - this._cachedAt) < this._cacheTtlMs) return this._cached;
+        this._cached = readSessions();
+        this._cachedAt = now;
+        return this._cached;
+    }
 
     _computeSummary(sessions) {
         const now = new Date();
@@ -63,7 +74,7 @@ class Stats extends GObject.Object {
     }
 
     render() {
-        const sessions = readSessions();
+        const sessions = this._getSessions();
         const s = this._computeSummary(sessions);
 
         const box = new St.BoxLayout({style_class: 'mertnotch-stats', vertical: true, x_expand: true, y_expand: true});

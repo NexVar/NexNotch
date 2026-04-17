@@ -215,10 +215,20 @@ export const DropShelf = GObject.registerClass({
             style_class: 'mertnotch-shelf-dest',
             x_expand: true,
         }));
-        const addBtn = new St.Button({style_class: 'mertnotch-shelf-add', label: '+ Add'});
+        const addBtn = new St.Button({
+            style_class: 'mertnotch-shelf-add',
+            label: '+ Add',
+            accessible_name: 'Add files to shelf',
+            can_focus: true,
+        });
         addBtn.connect('clicked', () => this.emit('request-add-file'));
         header.add_child(addBtn);
-        const openBtn = new St.Button({style_class: 'mertnotch-shelf-open', label: 'Open ↗'});
+        const openBtn = new St.Button({
+            style_class: 'mertnotch-shelf-open',
+            label: 'Open ↗',
+            accessible_name: 'Open shelf folder in file manager',
+            can_focus: true,
+        });
         openBtn.connect('clicked', () => {
             Gio.AppInfo.launch_default_for_uri(
                 Gio.File.new_for_path(SHELF_DIR).get_uri(), null);
