@@ -204,6 +204,8 @@ class Notch extends St.Widget {
             }
             /* If the currently-active tab was disabled, switch to System. */
             if (!this._tabEnabled(this._activeTab)) this._switchTab('system');
+            /* also start/stop the corresponding module so polling matches UI */
+            this._reconcileModulesWithPrefs();
         }
     }
 
@@ -395,10 +397,37 @@ class Notch extends St.Widget {
     }
 
     start() {
-        for (const m of Object.values(this._modules)) m.start?.();
+        /* gate modules whose matching show-* key is off, so they don't poll
+           resources in the background. start/stop is idempotent inside each
+           module. */
+        this._startEnabledModules();
         this._switchTab('system');
         this._startClock();
         this._updateBatteryIcon();
+    }
+
+    _startEnabledModules() {
+        for (const [name, mod] of Object.entries(this._modules)) {
+            if (this._moduleEnabled(name)) mod.start?.();
+        }
+    }
+
+    _reconcileModulesWithPrefs() {
+        for (const [name, mod] of Object.entries(this._modules)) {
+            const enabled = this._moduleEnabled(name);
+            const running = !!mod._running;
+            if (enabled && !running)  { try { mod.start?.(); mod._running = true;  } catch (e) { logError(e); } }
+            if (!enabled && running)  { try { mod.stop?.();  mod._running = false; } catch (e) { logError(e); } }
+        }
+    }
+
+    _moduleEnabled(name) {
+        const tab = {
+            dropshelf: 'shelf',
+            calendar:  'calendar',
+        }[name];
+        if (!tab) return true;   /* system / mpris / notes / weather / pomodoro / quick / stats / notifications always on */
+        return this._tabEnabled(tab);
     }
 
     stop() {
