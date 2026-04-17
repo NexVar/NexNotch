@@ -4,6 +4,9 @@ import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
+
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
@@ -12,6 +15,10 @@ import {DropShelf}        from './modules/dropshelf.js';
 import {NotificationPeek} from './modules/notifications.js';
 import {CalendarPeek}     from './modules/calendar.js';
 import {MprisWatcher}     from './modules/mpris.js';
+import {Notes}            from './modules/notes.js';
+import {Weather}          from './modules/weather.js';
+import {Pomodoro}         from './modules/pomodoro.js';
+import {QuickHub}         from './modules/quick.js';
 
 const HOVER_DELAY_MS    = 180;
 const COLLAPSE_DELAY_MS = 300;
@@ -56,6 +63,10 @@ class Notch extends St.Widget {
             notifications: new NotificationPeek(this._settings),
             calendar:      new CalendarPeek(this._settings),
             mpris:         new MprisWatcher(),
+            notes:         new Notes(this._settings),
+            weather:       new Weather(this._settings),
+            pomodoro:      new Pomodoro(this._settings),
+            quick:         new QuickHub(this._settings),
         };
 
         this._modules.system.connect('updated',             (_, s)      => this._onSystemUpdated(s));
@@ -64,6 +75,10 @@ class Notch extends St.Widget {
         this._modules.dropshelf.connect('request-add-file', ()          => this.openFilePicker());
         this._modules.calendar.connect('updated',           ()          => { if (this._expanded) this._renderTab(); });
         this._modules.mpris.connect('changed',              (_, info)   => this._updateMedia(info));
+        this._modules.weather.connect('updated',            ()          => { if (this._expanded && this._activeTab === 'weather') this._renderTab(); });
+        this._modules.pomodoro.connect('tick',              ()          => { if (this._expanded && this._activeTab === 'pomodoro') this._renderTab(); this._updatePomodoroIndicator(); });
+        this._modules.pomodoro.connect('state',             ()          => { if (this._expanded && this._activeTab === 'pomodoro') this._renderTab(); this._updatePomodoroIndicator(); });
+        this._modules.quick.connect('updated',              ()          => { if (this._expanded && this._activeTab === 'quick') this._renderTab(); this._updatePrivacyIndicator(); });
 
         this._hoverHandlerId = this.connect('notify::hover', () => this._onHoverChanged());
         this.connect('destroy', () => this._onDestroy());
@@ -166,8 +181,10 @@ class Notch extends St.Widget {
             visible: false,
         });
         this._statusDot = new St.Widget({style_class: 'mertnotch-dot', visible: false});
+        this._privacyDot = new St.Widget({style_class: 'mertnotch-privacy-dot', visible: false});
         this._leftCluster.add_child(this._batteryIcon);
         this._leftCluster.add_child(this._mediaIcon);
+        this._leftCluster.add_child(this._privacyDot);
         this._leftCluster.add_child(this._statusDot);
 
         /* center clock */
@@ -184,6 +201,8 @@ class Notch extends St.Widget {
         this._rightCluster = new St.BoxLayout({style_class: 'mertnotch-cluster mertnotch-right', vertical: false});
         this._dateLabelC = new St.Label({text: '', style_class: 'mertnotch-date-mini', y_align: Clutter.ActorAlign.CENTER});
         this._shelfBadge = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false, y_align: Clutter.ActorAlign.CENTER});
+        this._pomoLabel = new St.Label({text: '', style_class: 'mertnotch-pomo-mini', visible: false, y_align: Clutter.ActorAlign.CENTER});
+        this._rightCluster.add_child(this._pomoLabel);
         this._rightCluster.add_child(this._dateLabelC);
         this._rightCluster.add_child(this._shelfBadge);
 
@@ -215,7 +234,8 @@ class Notch extends St.Widget {
         this._expandedLayer.add_child(this._content);
 
         this._tabButtons = {};
-        for (const id of ['system', 'calendar', 'tasks', 'shelf']) {
+        const tabIds = ['system', 'calendar', 'tasks', 'shelf', 'notes', 'weather', 'pomodoro', 'quick'];
+        for (const id of tabIds) {
             const btn = new St.Button({
                 style_class: 'mertnotch-tab',
                 label: this._tabLabel(id),
@@ -236,12 +256,34 @@ class Notch extends St.Widget {
         if (Main.xdndHandler) {
             this._xdndBeginId = Main.xdndHandler.connect('drag-begin', () => {
                 this._xdndActive = true;
-                this._scheduleExpand();
+                if (!this._expanded) {
+                    this._clearHoverTimeout();
+                    this._switchTab('shelf');
+                    this._expand();
+                } else {
+                    this._switchTab('shelf');
+                }
+                this._bg?.add_style_class_name('drag-active');
             });
             this._xdndEndId = Main.xdndHandler.connect('drag-end', () => {
                 this._xdndActive = false;
+                this._bg?.remove_style_class_name('drag-active');
+                if (!this.hover) this._scheduleCollapse();
             });
         }
+        try {
+            Main.wm.addKeybinding('shortcut-filepicker',
+                this._settings,
+                Meta.KeyBindingFlags.NONE,
+                Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+                () => this.openFilePicker());
+            Main.wm.addKeybinding('shortcut-toggle',
+                this._settings,
+                Meta.KeyBindingFlags.NONE,
+                Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+                () => this._expanded ? this._collapse() : this._expand());
+            this._keybindings = ['shortcut-filepicker', 'shortcut-toggle'];
+        } catch (e) { logError(e, 'mertnotch:keybinding'); }
     }
 
     acceptDrop(source) {
@@ -273,7 +315,10 @@ class Notch extends St.Widget {
     }
 
     _tabLabel(id) {
-        return {system: 'System', calendar: 'Calendar', tasks: 'Tasks', shelf: 'Shelf'}[id] ?? id;
+        return {
+            system: 'System', calendar: 'Cal', tasks: 'Tasks', shelf: 'Shelf',
+            notes:  'Notes',  weather:  'Weather', pomodoro: 'Timer', quick: 'Quick',
+        }[id] ?? id;
     }
 
     start() {
@@ -292,6 +337,10 @@ class Notch extends St.Widget {
         if (this._settingsSig) { this._settings.disconnect(this._settingsSig); this._settingsSig = 0; }
         if (this._xdndBeginId && Main.xdndHandler) { Main.xdndHandler.disconnect(this._xdndBeginId); this._xdndBeginId = 0; }
         if (this._xdndEndId   && Main.xdndHandler) { Main.xdndHandler.disconnect(this._xdndEndId);   this._xdndEndId   = 0; }
+        for (const key of this._keybindings ?? []) {
+            try { Main.wm.removeKeybinding(key); } catch (_) {}
+        }
+        this._keybindings = [];
     }
 
     _onDestroy() {
@@ -437,6 +486,10 @@ class Notch extends St.Widget {
             shelf:    this._modules.dropshelf,
             calendar: this._modules.calendar,
             tasks:    this._modules.calendar,
+            notes:    this._modules.notes,
+            weather:  this._modules.weather,
+            pomodoro: this._modules.pomodoro,
+            quick:    this._modules.quick,
         }[this._activeTab];
         const child = mod?.render?.(this._activeTab);
         this._content.set_child(child ?? new St.Label({text: '—', x_align: Clutter.ActorAlign.CENTER}));
@@ -509,6 +562,29 @@ class Notch extends St.Widget {
     _updateShelfIndicator(n) {
         if (n > 0) { this._shelfBadge.text = `${n}`; this._shelfBadge.visible = true; }
         else       { this._shelfBadge.visible = false; }
+    }
+
+    _updatePomodoroIndicator() {
+        const p = this._modules?.pomodoro;
+        if (!this._pomoLabel) return;
+        if (!p || !p.isActive()) { this._pomoLabel.visible = false; return; }
+        this._pomoLabel.text = p.formatRemain();
+        this._pomoLabel.visible = true;
+        this._pomoLabel.remove_style_class_name('break');
+        if (p.getState() === 'break' || p.getState() === 'longbreak') {
+            this._pomoLabel.add_style_class_name('break');
+        }
+    }
+
+    _updatePrivacyIndicator() {
+        const q = this._modules?.quick;
+        if (!this._privacyDot) return;
+        const active = q && (q._mic || q._cam);
+        this._privacyDot.visible = !!active;
+        this._privacyDot.remove_style_class_name('cam');
+        this._privacyDot.remove_style_class_name('mic');
+        if (q?._cam) this._privacyDot.add_style_class_name('cam');
+        else if (q?._mic) this._privacyDot.add_style_class_name('mic');
     }
 
     _peekNotification(source, notif) {

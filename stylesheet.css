@@ -39,6 +39,126 @@
     padding: 0 1px;
 }
 
+.mertnotch-privacy-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background-color: rgba(255, 90, 70, 0.95);
+    box-shadow: 0 0 6px rgba(255, 90, 70, 0.65);
+}
+.mertnotch-privacy-dot.cam { background-color: rgba(255, 70, 70, 1); box-shadow: 0 0 6px rgba(255, 70, 70, 0.75); }
+.mertnotch-privacy-dot.mic { background-color: rgba(255, 170, 60, 0.95); box-shadow: 0 0 6px rgba(255, 170, 60, 0.65); }
+
+.mertnotch-pomo-mini {
+    color: rgba(140, 220, 140, 0.95);
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    font-feature-settings: "tnum";
+    padding: 0 4px;
+}
+.mertnotch-pomo-mini.break {
+    color: rgba(255, 190, 80, 0.95);
+}
+
+.mertnotch-bg.drag-active {
+    border: 2px dashed rgba(120, 170, 255, 0.9);
+    background-color: rgba(0, 0, 0, 0.96);
+}
+
+/* ——— notes ——— */
+.mertnotch-notes { spacing: 8px; }
+.mertnotch-notes-entry {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: rgba(255, 255, 255, 0.92);
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 12px;
+    min-height: 140px;
+}
+.mertnotch-notes-footer { padding-top: 4px; spacing: 8px; }
+.mertnotch-notes-info   { color: rgba(255, 255, 255, 0.4); font-size: 10px; }
+.mertnotch-notes-clear  {
+    color: rgba(255, 255, 255, 0.7); font-size: 10px; padding: 3px 10px;
+    border-radius: 999px; background-color: rgba(255, 255, 255, 0.06); border: 0;
+}
+.mertnotch-notes-clear:hover { background-color: rgba(255, 120, 120, 0.2); color: white; }
+
+/* ——— weather ——— */
+.mertnotch-weather { spacing: 10px; }
+.mertnotch-weather-header { spacing: 14px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.mertnotch-weather-area {
+    color: white; font-family: "SF Pro Display", "Inter", sans-serif;
+    font-size: 15px; font-weight: 600;
+}
+.mertnotch-weather-desc { color: rgba(255, 255, 255, 0.6); font-size: 11px; }
+.mertnotch-weather-temp {
+    color: white; font-family: "SF Pro Display", "Inter", sans-serif;
+    font-size: 32px; font-weight: 500; letter-spacing: -0.8px;
+    font-feature-settings: "tnum";
+}
+.mertnotch-weather-meta { spacing: 10px; padding: 4px 0 6px 0; }
+.mertnotch-weather-meta-cell { spacing: 1px; x-align: center; }
+.mertnotch-weather-meta-label { color: rgba(255, 255, 255, 0.45); font-size: 9px; font-weight: 600; letter-spacing: 0.4px; }
+.mertnotch-weather-meta-value { color: rgba(255, 255, 255, 0.92); font-size: 12px; font-weight: 500; }
+.mertnotch-weather-forecast { spacing: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.mertnotch-weather-day { spacing: 2px; padding: 6px 4px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.04); }
+.mertnotch-weather-day-label { color: rgba(255, 255, 255, 0.72); font-size: 10px; font-weight: 700; letter-spacing: 0.3px; }
+.mertnotch-weather-day-temp  { color: white; font-size: 12px; font-weight: 500; font-feature-settings: "tnum"; }
+.mertnotch-weather-day-desc  { color: rgba(255, 255, 255, 0.5); font-size: 9px; }
+
+/* ——— pomodoro ——— */
+.mertnotch-pomo { spacing: 6px; padding: 8px 0; }
+.mertnotch-pomo-big {
+    color: white; font-family: "SF Pro Display", "Inter", sans-serif;
+    font-size: 42px; font-weight: 500; letter-spacing: -1px;
+    font-feature-settings: "tnum";
+}
+.mertnotch-pomo-state { color: rgba(140, 220, 140, 0.85); font-size: 11px; font-weight: 600; letter-spacing: 0.4px; }
+.mertnotch-pomo-cycles { color: rgba(255, 255, 255, 0.4); font-size: 10px; font-weight: 500; }
+.mertnotch-pomo-btns { spacing: 8px; padding-top: 4px; }
+.mertnotch-pomo-btn {
+    color: rgba(255, 255, 255, 0.85); font-size: 11px; font-weight: 600;
+    padding: 6px 18px; border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.08); border: 0;
+}
+.mertnotch-pomo-btn:hover { background-color: rgba(255, 255, 255, 0.16); color: white; }
+.mertnotch-pomo-btn.primary {
+    background-color: rgba(140, 220, 140, 0.28); color: white;
+}
+.mertnotch-pomo-btn.primary:hover { background-color: rgba(140, 220, 140, 0.45); }
+
+/* ——— quick hub ——— */
+.mertnotch-quick { spacing: 8px; }
+.mertnotch-quick-row { spacing: 8px; padding: 2px 0; }
+.mertnotch-quick-pill {
+    spacing: 5px; padding: 4px 10px; border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.mertnotch-quick-pill.active {
+    background-color: rgba(255, 90, 70, 0.2);
+    border: 1px solid rgba(255, 90, 70, 0.35);
+}
+.mertnotch-quick-pill-label { color: rgba(255, 255, 255, 0.5); font-size: 10px; font-weight: 600; letter-spacing: 0.4px; }
+.mertnotch-quick-pill-value { color: white; font-size: 11px; font-weight: 600; font-feature-settings: "tnum"; }
+
+.mertnotch-quick-section { color: rgba(255, 255, 255, 0.45); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding-top: 4px; }
+.mertnotch-quick-bt-row { padding: 2px 0; spacing: 8px; }
+.mertnotch-quick-bt-name { color: rgba(255, 255, 255, 0.9); font-size: 11px; }
+.mertnotch-quick-bt-pct  { color: rgba(140, 220, 140, 0.95); font-size: 10px; font-weight: 700; font-feature-settings: "tnum"; }
+.mertnotch-quick-bt-pct.low { color: rgba(255, 110, 90, 0.95); }
+
+.mertnotch-quick-actions { spacing: 6px; padding-top: 4px; }
+.mertnotch-quick-action {
+    color: rgba(255, 255, 255, 0.9); font-size: 10px; font-weight: 600;
+    padding: 6px 10px; border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06); border: 0;
+    transition-duration: 160ms;
+}
+.mertnotch-quick-action:hover { background-color: rgba(255, 255, 255, 0.14); color: white; }
+
 .mertnotch-clock {
     color: rgba(255, 255, 255, 0.96);
     font-family: "SF Pro Display", "Inter", "Cantarell", sans-serif;
@@ -117,9 +237,9 @@
     color: rgba(255, 255, 255, 0.58);
     background-color: transparent;
     border-radius: 7px;
-    padding: 6px 12px;
+    padding: 5px 8px;
     font-family: "SF Pro Text", "Inter", "Cantarell", sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     border: 0;
     transition-duration: 160ms;

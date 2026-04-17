@@ -50,5 +50,43 @@
 
     <!-- misc -->
     <key name="hide-top-bar-center"  type="b"><default>false</default><summary>(reserved) keep other center-box widgets hidden</summary></key>
+
+    <!-- keybindings -->
+    <key name="shortcut-filepicker" type="as">
+      <default>["&lt;Super&gt;&lt;Shift&gt;d"]</default>
+      <summary>Open file picker and add to shelf</summary>
+    </key>
+    <key name="shortcut-toggle" type="as">
+      <default>["&lt;Super&gt;n"]</default>
+      <summary>Toggle the notch (expand/collapse)</summary>
+    </key>
+
+    <!-- notes -->
+    <key name="notes-content" type="s">
+      <default>""</default>
+      <summary>Notes tab raw markdown content</summary>
+    </key>
+
+    <!-- weather -->
+    <key name="weather-location" type="s">
+      <default>""</default>
+      <summary>Weather location (city name or lat,lon). Empty = IP auto.</summary>
+    </key>
+    <key name="weather-unit" type="s">
+      <choices><choice value="metric"/><choice value="imperial"/></choices>
+      <default>"metric"</default>
+      <summary>Temperature unit</summary>
+    </key>
+    <key name="weather-refresh" type="i">
+      <default>30</default>
+      <range min="5" max="240"/>
+      <summary>Weather refresh interval (minutes)</summary>
+    </key>
+
+    <!-- pomodoro -->
+    <key name="pomodoro-work"   type="i"><default>25</default><range min="1" max="180"/><summary>Pomodoro work duration (min)</summary></key>
+    <key name="pomodoro-break"  type="i"><default>5</default> <range min="1" max="60"/> <summary>Pomodoro short break (min)</summary></key>
+    <key name="pomodoro-long"   type="i"><default>15</default><range min="1" max="60"/> <summary>Pomodoro long break (min)</summary></key>
+    <key name="pomodoro-cycles" type="i"><default>4</default> <range min="1" max="10"/> <summary>Work cycles before long break</summary></key>
   </schema>
 </schemalist>
