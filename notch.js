@@ -83,7 +83,11 @@ class Notch extends St.Widget {
         this._modules.notifications.connect('peek',         (_, src, n) => this._peekNotification(src, n));
         this._modules.dropshelf.connect('count-changed',    (_, n)      => this._updateShelfIndicator(n));
         this._modules.dropshelf.connect('request-add-file', ()          => this.openFilePicker());
-        this._modules.calendar.connect('updated',           ()          => { if (this._expanded) this._renderTab(); });
+        this._modules.calendar.connect('updated', () => {
+            if (this._expanded && (this._activeTab === 'calendar' || this._activeTab === 'tasks')) {
+                this._renderTab();
+            }
+        });
         this._modules.mpris.connect('changed',              (_, info)   => this._updateMedia(info));
         this._modules.weather.connect('updated',            ()          => { if (this._expanded && this._activeTab === 'weather') this._renderTab(); });
         this._modules.pomodoro.connect('tick',              ()          => { if (this._expanded && this._activeTab === 'pomodoro') this._renderTab(); this._updatePomodoroIndicator(); });
@@ -408,7 +412,11 @@ class Notch extends St.Widget {
 
     _startEnabledModules() {
         for (const [name, mod] of Object.entries(this._modules)) {
-            if (this._moduleEnabled(name)) mod.start?.();
+            if (this._moduleEnabled(name)) {
+                try { mod.start?.(); mod._running = true; } catch (e) { logError(e); }
+            } else {
+                mod._running = false;
+            }
         }
     }
 
@@ -422,12 +430,11 @@ class Notch extends St.Widget {
     }
 
     _moduleEnabled(name) {
-        const tab = {
-            dropshelf: 'shelf',
-            calendar:  'calendar',
-        }[name];
-        if (!tab) return true;   /* system / mpris / notes / weather / pomodoro / quick / stats / notifications always on */
-        return this._tabEnabled(tab);
+        /* The calendar module backs BOTH the Calendar and Tasks tabs, so it
+           must run while either tab is visible. */
+        if (name === 'calendar') return this._tabEnabled('calendar') || this._tabEnabled('tasks');
+        if (name === 'dropshelf') return this._tabEnabled('shelf');
+        return true;
     }
 
     stop() {

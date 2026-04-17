@@ -81,6 +81,11 @@ class Notes extends GObject.Object {
         const blurEntry = () => {
             if (this._grabActor) this._grabActor._notesFocused = false;
         };
+        /* key-focus-in covers keyboard tabbing into the entry, which the
+           button-press wiring alone misses. Both paths now set the flag. */
+        clutterText.connect('key-focus-in', () => {
+            if (this._grabActor) this._grabActor._notesFocused = true;
+        });
         clutterText.connect('key-focus-out', blurEntry);
         entry.connect('button-press-event', () => { focusEntry(); return Clutter.EVENT_PROPAGATE; });
         clutterText.connect('button-press-event', () => { focusEntry(); return Clutter.EVENT_PROPAGATE; });

@@ -26,6 +26,7 @@ export const QuickHub = GObject.registerClass({
         this._btDevices = [];
         this._kbLayout = '';
         this._poller = 0;
+        this._armedTimers = new Set();
         try {
             this._dndSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.notifications'});
         } catch (_) { this._dndSettings = null; }
@@ -46,6 +47,10 @@ export const QuickHub = GObject.registerClass({
     stop() {
         this._stopped = true;
         if (this._poller) { GLib.source_remove(this._poller); this._poller = 0; }
+        for (const id of this._armedTimers) {
+            try { GLib.source_remove(id); } catch (_) {}
+        }
+        this._armedTimers.clear();
     }
 
     destroy() { this.stop(); }
@@ -111,8 +116,10 @@ export const QuickHub = GObject.registerClass({
                             if (!/model:/i.test(b)) continue;
                             if (!/battery/i.test(b) && !/headset|headphones|keyboard|mouse|phone/i.test(b)) continue;
                             const model = (b.match(/model:\s+([^\n]+)/) || [])[1];
-                            const pct   = Number((b.match(/percentage:\s+(\d+)/) || [])[1]);
-                            if (model && pct) devs.push({model: model.trim(), pct});
+                            const pctRaw = (b.match(/percentage:\s+(\d+)/) || [])[1];
+                            const pct   = Number(pctRaw);
+                            /* keep 0% devices — they're the ones that need alerting */
+                            if (model && Number.isFinite(pct)) devs.push({model: model.trim(), pct});
                         }
                         resolve(devs);
                     } catch (_) { resolve([]); }
@@ -207,27 +214,34 @@ export const QuickHub = GObject.registerClass({
         });
         let armed = false;
         let armTimer = 0;
-        b.connect('clicked', () => {
-            if (armed) {
-                armed = false;
-                if (armTimer) { GLib.source_remove(armTimer); armTimer = 0; }
-                b.label = label;
-                b.remove_style_class_name('armed');
-                this._run(argv);
-                return;
+        const disarm = () => {
+            armed = false;
+            if (armTimer) {
+                this._armedTimers.delete(armTimer);
+                try { GLib.source_remove(armTimer); } catch (_) {}
+                armTimer = 0;
             }
+            try { b.label = label; b.remove_style_class_name('armed'); } catch (_) {}
+        };
+        b.connect('clicked', () => {
+            if (this._stopped) return;
+            if (armed) { disarm(); this._run(argv); return; }
             armed = true;
             b.label = 'Really?';
             b.add_style_class_name('armed');
-            if (armTimer) GLib.source_remove(armTimer);
+            if (armTimer) { this._armedTimers.delete(armTimer); GLib.source_remove(armTimer); }
             armTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                this._armedTimers.delete(armTimer);
                 armTimer = 0;
-                armed = false;
-                b.label = label;
-                b.remove_style_class_name('armed');
+                disarm();
                 return GLib.SOURCE_REMOVE;
             });
+            this._armedTimers.add(armTimer);
         });
+        /* if the whole tab rerenders while armed, the button is destroyed —
+           make sure we also drop the pending timer rather than touching a
+           dead actor. */
+        b.connect('destroy', () => disarm());
         return b;
     }
 

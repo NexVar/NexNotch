@@ -69,6 +69,8 @@ export const CalendarPeek = GObject.registerClass({
         this._stopped = true;
         if (this._refreshTimer) { GLib.source_remove(this._refreshTimer); this._refreshTimer = 0; }
         if (this._tasksTimer)   { GLib.source_remove(this._tasksTimer);   this._tasksTimer = 0; }
+        if (this._filterSig1) { this._settings.disconnect(this._filterSig1); this._filterSig1 = 0; }
+        if (this._filterSig2) { this._settings.disconnect(this._filterSig2); this._filterSig2 = 0; }
         if (this._proxy) {
             for (const [_, id] of this._sigIds) {
                 try { this._proxy.disconnectSignal(id); } catch (_) {}
@@ -77,6 +79,7 @@ export const CalendarPeek = GObject.registerClass({
             this._proxy = null;
         }
         this._taskClients = [];
+        this._emailMap = null;
     }
 
     destroy() { this.stop(); }
@@ -95,6 +98,13 @@ export const CalendarPeek = GObject.registerClass({
                 this._refreshRange();
                 return GLib.SOURCE_CONTINUE;
             });
+            /* Invalidate source->email map when a new GOA account is added or
+               removed so filters don't reference stale UIDs. */
+            this._filterSig1 = this._settings.connect('changed::calendar-enabled-sources', () => {
+                this._emailMap = null;
+                this.emit('updated');
+            });
+            this._filterSig2 = this._settings.connect('changed::tasks-enabled-lists', () => this.emit('updated'));
         } catch (e) { logError(e, 'mertnotch:calendar'); }
     }
 
@@ -120,15 +130,17 @@ export const CalendarPeek = GObject.registerClass({
         const enabled = this._settings.get_strv('calendar-enabled-sources');
         if (enabled.length === 0) return events;
         /* Event IDs from Shell.CalendarServer are `SourceUID:EventUID`.
-           We map SourceUID to GOA email via the EDS registry if available. */
+           We map SourceUID to GOA email via the EDS registry if available.
+           Unknown sources are REJECTED when the filter is non-empty — fail
+           closed so disabled accounts can't leak through. */
         try {
             const emailFor = this._sourceEmailMap();
             return events.filter(e => {
                 const srcUid = (e.id ?? '').split(':')[0];
                 const email = emailFor.get(srcUid);
-                return !email || enabled.includes(email);
+                return !!email && enabled.includes(email);
             });
-        } catch (_) { return events; }
+        } catch (_) { return []; }
     }
 
     _sourceEmailMap() {
