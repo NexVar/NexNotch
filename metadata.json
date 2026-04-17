@@ -1,0 +1,10 @@
+{
+    "uuid": "mertnotch@mertdlkr",
+    "name": "MertNotch",
+    "description": "MacBook-style interactive notch for GNOME. System pill, file drop shelf, dynamic notification peek, and Google Calendar/Tasks via GOA.",
+    "shell-version": ["49", "50"],
+    "url": "https://github.com/mertdlkr/mertnotch",
+    "version-name": "0.1.0",
+    "settings-schema": "org.gnome.shell.extensions.mertnotch",
+    "gettext-domain": "mertnotch"
+}

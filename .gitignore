@@ -1,0 +1,6 @@
+schemas/gschemas.compiled
+*.shell-extension.zip
+*.swp
+*~
+.DS_Store
+node_modules/

@@ -1,0 +1,144 @@
+.mertnotch {
+    background-color: transparent;
+}
+
+.mertnotch-bg {
+    background-color: rgba(0, 0, 0, 0.92);
+    border-radius: 0 0 14px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 0;
+}
+
+.mertnotch-collapsed {
+    padding: 0 10px;
+    spacing: 10px;
+}
+
+.mertnotch-pill {
+    spacing: 4px;
+    padding: 2px 6px;
+    border-radius: 8px;
+}
+
+.mertnotch-pill.accent {
+    background-color: rgba(120, 170, 255, 0.18);
+}
+
+.mertnotch-pill-key {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.mertnotch-pill-val {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-weight: 600;
+    font-feature-settings: "tnum";
+}
+
+.mertnotch-expanded {
+    padding: 10px 12px;
+    spacing: 8px;
+}
+
+.mertnotch-tabs {
+    spacing: 4px;
+    padding-bottom: 6px;
+}
+
+.mertnotch-tab {
+    color: rgba(255, 255, 255, 0.55);
+    background-color: transparent;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.mertnotch-tab:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.mertnotch-tab:active,
+.mertnotch-tab:active:hover {
+    color: white;
+    background-color: rgba(120, 170, 255, 0.22);
+}
+
+.mertnotch-content {
+    padding: 4px 2px;
+}
+
+.mertnotch-sys-row,
+.mertnotch-cal-row,
+.mertnotch-task-row,
+.mertnotch-shelf-row {
+    padding: 3px 2px;
+    spacing: 8px;
+}
+
+.mertnotch-sys-label,
+.mertnotch-cal-when {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    min-width: 70px;
+}
+
+.mertnotch-sys-value,
+.mertnotch-cal-title {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-feature-settings: "tnum";
+}
+
+.mertnotch-empty {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11px;
+    padding: 20px 10px;
+}
+
+.mertnotch-shelf-size {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 10px;
+}
+
+.mertnotch-shelf-rm {
+    color: rgba(255, 120, 120, 0.7);
+    font-size: 14px;
+    padding: 0 6px;
+}
+
+.mertnotch-shelf-rm:hover {
+    color: rgba(255, 120, 120, 1);
+}
+
+.mertnotch-task-check {
+    min-width: 16px;
+    color: rgba(140, 220, 140, 0.9);
+}
+
+.mertnotch-task-due {
+    color: rgba(255, 200, 120, 0.75);
+    font-size: 10px;
+}
+
+.mertnotch-peek {
+    padding: 6px 12px;
+    spacing: 2px;
+    background-color: rgba(0, 0, 0, 0.92);
+    border-radius: 0 0 14px 14px;
+}
+
+.mertnotch-peek-title {
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mertnotch-peek-body {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+}

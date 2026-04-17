@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.mertnotch"
+          path="/org/gnome/shell/extensions/mertnotch/">
+
+    <key name="show-system" type="b">
+      <default>true</default>
+      <summary>Show system monitor pill</summary>
+    </key>
+
+    <key name="show-dropshelf" type="b">
+      <default>true</default>
+      <summary>Enable file drop shelf</summary>
+    </key>
+
+    <key name="show-notifications" type="b">
+      <default>true</default>
+      <summary>Enable dynamic notification peek</summary>
+    </key>
+
+    <key name="show-calendar" type="b">
+      <default>true</default>
+      <summary>Enable Google Calendar peek</summary>
+    </key>
+
+    <key name="show-tasks" type="b">
+      <default>true</default>
+      <summary>Enable Google Tasks peek</summary>
+    </key>
+
+    <key name="poll-interval" type="i">
+      <default>3</default>
+      <range min="1" max="30"/>
+      <summary>System monitor poll interval (seconds)</summary>
+    </key>
+
+    <key name="collapsed-width" type="i">
+      <default>280</default>
+      <range min="180" max="420"/>
+      <summary>Collapsed notch width in pixels</summary>
+    </key>
+
+    <key name="expanded-width" type="i">
+      <default>560</default>
+      <range min="400" max="900"/>
+      <summary>Expanded notch width in pixels</summary>
+    </key>
+
+    <key name="tasks-account" type="s">
+      <default>""</default>
+      <summary>GOA account email for Google Tasks sync (empty = disabled)</summary>
+    </key>
+  </schema>
+</schemalist>
