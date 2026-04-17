@@ -3,39 +3,35 @@
 }
 
 .mertnotch-bg {
-    background-color: rgba(0, 0, 0, 0.92);
-    border-radius: 0 0 14px 14px;
+    background-color: rgba(0, 0, 0, 0.94);
+    border-radius: 0 0 16px 16px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-top: 0;
 }
 
 .mertnotch-collapsed {
     padding: 0 10px;
-    spacing: 10px;
+    spacing: 6px;
 }
 
-.mertnotch-pill {
-    spacing: 4px;
-    padding: 2px 6px;
-    border-radius: 8px;
-}
-
-.mertnotch-pill.accent {
-    background-color: rgba(120, 170, 255, 0.18);
-}
-
-.mertnotch-pill-key {
-    color: rgba(255, 255, 255, 0.45);
+.mertnotch-indicator {
+    color: rgba(255, 255, 255, 0.0);
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    min-width: 4px;
+    min-height: 4px;
 }
 
-.mertnotch-pill-val {
-    color: rgba(255, 255, 255, 0.92);
-    font-size: 11px;
-    font-weight: 600;
-    font-feature-settings: "tnum";
+.mertnotch-indicator.hot {
+    color: rgba(255, 120, 90, 0.9);
+}
+
+.mertnotch-shelf-badge {
+    background-color: rgba(120, 170, 255, 0.3);
+    color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .mertnotch-expanded {
@@ -55,6 +51,7 @@
     padding: 4px 10px;
     font-size: 11px;
     font-weight: 600;
+    border: 0;
 }
 
 .mertnotch-tab:hover {
@@ -72,12 +69,12 @@
     padding: 4px 2px;
 }
 
-.mertnotch-sys-row,
-.mertnotch-cal-row,
-.mertnotch-task-row,
-.mertnotch-shelf-row {
-    padding: 3px 2px;
-    spacing: 8px;
+.mertnotch-sys {
+    spacing: 2px;
+}
+
+.mertnotch-sys-grid {
+    padding: 2px;
 }
 
 .mertnotch-sys-label,
@@ -94,51 +91,88 @@
     font-feature-settings: "tnum";
 }
 
+.mertnotch-bar {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    margin: 1px 4px 3px 4px;
+}
+
+.mertnotch-bar-fill {
+    background-color: rgba(120, 170, 255, 0.75);
+    border-radius: 2px;
+}
+
+.mertnotch-bar-fill.warn   { background-color: rgba(255, 190, 80, 0.85); }
+.mertnotch-bar-fill.danger { background-color: rgba(255, 110, 90, 0.9); }
+
+.mertnotch-cal-row,
+.mertnotch-task-row,
+.mertnotch-shelf-row {
+    padding: 3px 2px;
+    spacing: 8px;
+}
+
 .mertnotch-empty {
     color: rgba(255, 255, 255, 0.45);
     font-size: 11px;
     padding: 20px 10px;
 }
 
-.mertnotch-shelf-size {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 10px;
+.mertnotch-shelf-header {
+    padding: 2px 2px 6px 2px;
+    spacing: 8px;
 }
 
+.mertnotch-shelf-dest {
+    color: rgba(120, 170, 255, 0.85);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.mertnotch-shelf-open {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 0;
+}
+
+.mertnotch-shelf-open:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.mertnotch-shelf-name { color: rgba(255, 255, 255, 0.92); font-size: 11px; }
+.mertnotch-shelf-name.uploading { color: rgba(255, 190, 80, 0.9); }
+.mertnotch-shelf-name.uploaded  { color: rgba(140, 220, 140, 0.9); }
+.mertnotch-shelf-name.error     { color: rgba(255, 110, 90, 0.9); }
+
+.mertnotch-shelf-state { color: rgba(255, 255, 255, 0.5); font-size: 10px; }
+.mertnotch-shelf-size  { color: rgba(255, 255, 255, 0.45); font-size: 10px; }
+
+.mertnotch-shelf-retry,
 .mertnotch-shelf-rm {
-    color: rgba(255, 120, 120, 0.7);
-    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
     padding: 0 6px;
+    border: 0;
+    background-color: transparent;
 }
 
-.mertnotch-shelf-rm:hover {
-    color: rgba(255, 120, 120, 1);
-}
+.mertnotch-shelf-rm:hover    { color: rgba(255, 120, 120, 1); }
+.mertnotch-shelf-retry:hover { color: rgba(120, 170, 255, 1); }
 
-.mertnotch-task-check {
-    min-width: 16px;
-    color: rgba(140, 220, 140, 0.9);
-}
-
-.mertnotch-task-due {
-    color: rgba(255, 200, 120, 0.75);
-    font-size: 10px;
-}
+.mertnotch-task-check { min-width: 16px; color: rgba(140, 220, 140, 0.9); }
+.mertnotch-task-due   { color: rgba(255, 200, 120, 0.75); font-size: 10px; }
 
 .mertnotch-peek {
-    padding: 6px 12px;
+    padding: 8px 14px;
     spacing: 2px;
-    background-color: rgba(0, 0, 0, 0.92);
-    border-radius: 0 0 14px 14px;
+    background-color: rgba(0, 0, 0, 0.94);
+    border-radius: 0 0 16px 16px;
 }
 
-.mertnotch-peek-title {
-    color: white;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.mertnotch-peek-body {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
-}
+.mertnotch-peek-title { color: white; font-size: 12px; font-weight: 600; }
+.mertnotch-peek-body  { color: rgba(255, 255, 255, 0.7); font-size: 11px; }

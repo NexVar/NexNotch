@@ -5,7 +5,7 @@
 
     <key name="show-system" type="b">
       <default>true</default>
-      <summary>Show system monitor pill</summary>
+      <summary>Show system monitor in expanded view</summary>
     </key>
 
     <key name="show-dropshelf" type="b">
@@ -35,8 +35,8 @@
     </key>
 
     <key name="collapsed-width" type="i">
-      <default>280</default>
-      <range min="180" max="420"/>
+      <default>160</default>
+      <range min="120" max="360"/>
       <summary>Collapsed notch width in pixels</summary>
     </key>
 
@@ -46,9 +46,30 @@
       <summary>Expanded notch width in pixels</summary>
     </key>
 
-    <key name="tasks-account" type="s">
+    <key name="notif-auto-dismiss" type="i">
+      <default>8</default>
+      <range min="0" max="120"/>
+      <summary>Auto-dismiss banner notifications after N seconds (0 = disabled)</summary>
+    </key>
+
+    <key name="dropshelf-destination" type="s">
+      <choices>
+        <choice value="local"/>
+        <choice value="drive"/>
+        <choice value="local+drive"/>
+      </choices>
+      <default>"local"</default>
+      <summary>Where dropped files go</summary>
+    </key>
+
+    <key name="dropshelf-account" type="s">
       <default>""</default>
-      <summary>GOA account email for Google Tasks sync (empty = disabled)</summary>
+      <summary>GOA Google account email for Drive uploads</summary>
+    </key>
+
+    <key name="dropshelf-drive-folder" type="s">
+      <default>"root"</default>
+      <summary>Drive folder ID to upload into (root = My Drive)</summary>
     </key>
   </schema>
 </schemalist>
