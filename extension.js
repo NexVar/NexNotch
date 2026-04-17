@@ -2,6 +2,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
@@ -13,16 +14,23 @@ export default class MertNotchExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
 
-        /* Ensure Evolution Data Server source registry is running. On this
-           Fedora setup D-Bus service-file activation of
-           org.gnome.evolution.dataserver.Sources5 doesn't happen at login,
-           so Calendar and Tasks arrive empty. Spawning it here is idempotent
-           — if it's already running the second instance exits immediately. */
+        /* Evolution Data Server's source-registry D-Bus service sometimes
+           doesn't auto-activate on login; when that happens Calendar and
+           Tasks come up empty. If the binary is discoverable via $PATH or
+           the standard libexec prefixes, kick it once — idempotent. This
+           replaces the previous hard-coded /usr/libexec/... path so the
+           extension stays portable across distros. */
         try {
-            Gio.Subprocess.new(
-                ['/usr/libexec/evolution-source-registry'],
-                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
-            );
+            const candidates = [
+                GLib.find_program_in_path('evolution-source-registry'),
+                '/usr/libexec/evolution-source-registry',
+                '/usr/lib/evolution-data-server/evolution-source-registry',
+                '/usr/lib64/evolution-data-server/evolution-source-registry',
+            ].filter(p => p && GLib.file_test(p, GLib.FileTest.IS_EXECUTABLE));
+            if (candidates.length) {
+                Gio.Subprocess.new([candidates[0]],
+                    Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE);
+            }
         } catch (_) {}
 
         this._notch = new Notch(this);

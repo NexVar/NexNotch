@@ -385,16 +385,16 @@ class Notch extends St.Widget {
     }
 
     _tabEnabled(id) {
-        /* Each tab is gated by a show-* gsettings key. System / Quick have
-           no toggle; everything else follows its key. */
         const key = {
+            system:   'show-system',
             shelf:    'show-dropshelf',
             calendar: 'show-calendar',
             tasks:    'show-tasks',
-            notes:    null,   /* always on — no key */
+            notes:    null,
             weather:  null,
             pomodoro: null,
             stats:    null,
+            quick:    null,
         }[id];
         if (!key) return true;
         return this._settings.get_boolean(key);
@@ -430,10 +430,10 @@ class Notch extends St.Widget {
     }
 
     _moduleEnabled(name) {
-        /* The calendar module backs BOTH the Calendar and Tasks tabs, so it
-           must run while either tab is visible. */
-        if (name === 'calendar') return this._tabEnabled('calendar') || this._tabEnabled('tasks');
-        if (name === 'dropshelf') return this._tabEnabled('shelf');
+        if (name === 'calendar')      return this._tabEnabled('calendar') || this._tabEnabled('tasks');
+        if (name === 'dropshelf')     return this._tabEnabled('shelf');
+        if (name === 'system')        return this._settings.get_boolean('show-system');
+        if (name === 'notifications') return this._settings.get_boolean('show-notifications');
         return true;
     }
 
@@ -791,6 +791,7 @@ class Notch extends St.Widget {
 
     _peekNotification(source, notif) {
         if (this._expanded) return;
+        if (!this._settings.get_boolean('show-notifications')) return;   /* master off */
         this._dismissPeek(true);
         if (this._settings.get_boolean('notif-suppress-native')) {
             this._killBanner(0); this._killBanner(60); this._killBanner(220);
@@ -923,9 +924,14 @@ class Notch extends St.Widget {
     }
 
     openFilePicker() {
+        const zenity = GLib.find_program_in_path('zenity');
+        if (!zenity) {
+            log('mertnotch: zenity not installed — drag-drop via `+ Add` is unavailable');
+            return;
+        }
         try {
             const proc = Gio.Subprocess.new(
-                ['zenity', '--file-selection', '--multiple', '--separator=\n', '--title=Add to notch shelf'],
+                [zenity, '--file-selection', '--multiple', '--separator=\n', '--title=Add to notch shelf'],
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
             );
             proc.communicate_utf8_async(null, null, (p, res) => {

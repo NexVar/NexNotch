@@ -22,6 +22,7 @@ export const DropShelf = GObject.registerClass({
         this._items = [];
         this._soup = new Soup.Session();
         this._soup.set_timeout(60);
+        this._cancellable = new Gio.Cancellable();
         GLib.mkdir_with_parents(SHELF_DIR, 0o755);
     }
 
@@ -29,7 +30,10 @@ export const DropShelf = GObject.registerClass({
         this._loadExisting();
     }
 
-    stop() {}
+    stop() {
+        if (this._cancellable) { try { this._cancellable.cancel(); } catch (_) {} }
+        this._cancellable = new Gio.Cancellable();
+    }
     destroy() { this.stop(); }
 
     _loadExisting() {
@@ -57,7 +61,8 @@ export const DropShelf = GObject.registerClass({
             const name = file.get_basename();
             const dest = Gio.File.new_for_path(GLib.build_filenamev([SHELF_DIR, this._safeName(name)]));
             /* Non-blocking copy so large files don't freeze the shell. */
-            file.copy_async(dest, Gio.FileCopyFlags.OVERWRITE, GLib.PRIORITY_DEFAULT, null, null, (_, res) => {
+            file.copy_async(dest, Gio.FileCopyFlags.OVERWRITE, GLib.PRIORITY_DEFAULT, this._cancellable, null, (_, res) => {
+                if (this._cancellable?.is_cancelled()) return;
                 try {
                     file.copy_finish(res);
                     const info = dest.query_info('standard::size', Gio.FileQueryInfoFlags.NONE, null);
@@ -106,7 +111,8 @@ export const DropShelf = GObject.registerClass({
             }
             const src = Gio.File.new_for_path(item.path);
             const target = destDir.get_child(this._safeBasename(destDir, item.name));
-            src.copy_async(target, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, null, null, (_, res) => {
+            src.copy_async(target, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, this._cancellable, null, (_, res) => {
+                if (this._cancellable?.is_cancelled()) return;
                 try {
                     src.copy_finish(res);
                     item.state = 'uploaded';

@@ -67,6 +67,7 @@ export const QuickHub = GObject.registerClass({
 
     async _anyAppUsing(_role) {
         return await new Promise(resolve => {
+            if (!GLib.find_program_in_path('pactl')) { resolve(false); return; }
             try {
                 const proc = Gio.Subprocess.new(
                     ['pactl', '-f', 'json', 'list', 'source-outputs'],
@@ -85,6 +86,7 @@ export const QuickHub = GObject.registerClass({
 
     async _anyCameraUsing() {
         return await new Promise(resolve => {
+            if (!GLib.find_program_in_path('fuser')) { resolve(false); return; }
             try {
                 const proc = Gio.Subprocess.new(
                     ['sh', '-c', 'fuser /dev/video* 2>/dev/null | wc -w'],
@@ -102,6 +104,7 @@ export const QuickHub = GObject.registerClass({
 
     async _btBatteries() {
         return await new Promise(resolve => {
+            if (!GLib.find_program_in_path('upower')) { resolve([]); return; }
             try {
                 const proc = Gio.Subprocess.new(
                     ['upower', '-d'],
@@ -246,6 +249,10 @@ export const QuickHub = GObject.registerClass({
     }
 
     _run(argv) {
+        if (!GLib.find_program_in_path(argv[0])) {
+            logError(new Error(`${argv[0]} not in PATH`), 'mertnotch:quick:run');
+            return;
+        }
         try {
             Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDERR_SILENCE);
         } catch (e) { logError(e, 'mertnotch:quick:run'); }

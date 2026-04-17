@@ -67,6 +67,7 @@ export const CalendarPeek = GObject.registerClass({
 
     stop() {
         this._stopped = true;
+        if (this._cancellable) { try { this._cancellable.cancel(); } catch (_) {} this._cancellable = null; }
         if (this._refreshTimer) { GLib.source_remove(this._refreshTimer); this._refreshTimer = 0; }
         if (this._tasksTimer)   { GLib.source_remove(this._tasksTimer);   this._tasksTimer = 0; }
         if (this._filterSig1) { this._settings.disconnect(this._filterSig1); this._filterSig1 = 0; }
@@ -175,13 +176,17 @@ export const CalendarPeek = GObject.registerClass({
     _startTasks() {
         if (!_ECal || !_EDataServer) return;
         this._stopped = false;
+        this._cancellable = new Gio.Cancellable();
         try {
-            const registry = _EDataServer.SourceRegistry.new_sync(null);
+            const registry = _EDataServer.SourceRegistry.new_sync(this._cancellable);
             const sources = registry.list_sources(_EDataServer.SOURCE_EXTENSION_TASK_LIST);
             for (const src of sources) {
                 if (!src.get_enabled()) continue;
-                _ECal.Client.connect(src, _ECal.ClientSourceType.TASKS, 30, null,
-                    (_, res) => this._onTaskClient(src, res));
+                _ECal.Client.connect(src, _ECal.ClientSourceType.TASKS, 30, this._cancellable,
+                    (_, res) => {
+                        if (this._stopped || this._cancellable?.is_cancelled()) return;
+                        this._onTaskClient(src, res);
+                    });
             }
             this._tasksTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 600, () => {
                 if (this._stopped) return GLib.SOURCE_REMOVE;
@@ -210,9 +215,9 @@ export const CalendarPeek = GObject.registerClass({
         try {
             client.get_object_list(
                 '(not (is-completed?))',
-                null,
+                this._cancellable,
                 (_, res) => {
-                    if (this._stopped) return;
+                    if (this._stopped || this._cancellable?.is_cancelled()) return;
                     try {
                         const finish = client.get_object_list_finish(res);
                         const objs = Array.isArray(finish) && finish.length === 2 ? finish[1] : finish;

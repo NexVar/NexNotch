@@ -20,6 +20,7 @@ export const Weather = GObject.registerClass({
         this._active = 1;
         this._timer = 0;
         this._lastFetch = 0;
+        this._cancellable = new Gio.Cancellable();
     }
 
     start() {
@@ -53,6 +54,8 @@ export const Weather = GObject.registerClass({
     }
 
     stop() {
+        if (this._cancellable) { try { this._cancellable.cancel(); } catch (_) {} }
+        this._cancellable = new Gio.Cancellable();
         if (this._timer) { GLib.source_remove(this._timer); this._timer = 0; }
         if (this._settingsSig)  { this._settings.disconnect(this._settingsSig);  this._settingsSig = 0; }
         if (this._settingsSig2) { this._settings.disconnect(this._settingsSig2); this._settingsSig2 = 0; }
@@ -69,7 +72,8 @@ export const Weather = GObject.registerClass({
         const url  = `https://wttr.in/${encodeURIComponent(loc)}?format=j1`;
         const msg  = Soup.Message.new('GET', url);
         msg.request_headers.append('User-Agent', 'mertnotch/0.1');
-        this._soup.send_and_read_async(msg, GLib.PRIORITY_LOW, null, (session, res) => {
+        this._soup.send_and_read_async(msg, GLib.PRIORITY_LOW, this._cancellable, (session, res) => {
+            if (this._cancellable?.is_cancelled()) return;
             try {
                 const bytes = session.send_and_read_finish(res);
                 const text = new TextDecoder().decode(bytes.get_data());

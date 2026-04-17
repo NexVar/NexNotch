@@ -255,7 +255,8 @@ export default class MertNotchPrefs extends ExtensionPreferences {
             });
             const btn = new Gtk.Button({label: 'Open GNOME Settings', css_classes: ['suggested-action', 'pill']});
             btn.connect('clicked', () => {
-                Gio.Subprocess.new(['gnome-control-center', 'online-accounts'], 0);
+                const gcc = GLib.find_program_in_path('gnome-control-center');
+                if (gcc) Gio.Subprocess.new([gcc, 'online-accounts'], 0);
             });
             empty.add_suffix(btn);
             group.add(empty);
@@ -279,7 +280,8 @@ export default class MertNotchPrefs extends ExtensionPreferences {
             const manageBtn = new Adw.ActionRow({title: 'Manage accounts'});
             const open = new Gtk.Button({label: 'GNOME Settings', css_classes: ['pill']});
             open.connect('clicked', () => {
-                Gio.Subprocess.new(['gnome-control-center', 'online-accounts'], 0);
+                const gcc = GLib.find_program_in_path('gnome-control-center');
+                if (gcc) Gio.Subprocess.new([gcc, 'online-accounts'], 0);
             });
             manageBtn.add_suffix(open);
             group.add(manageBtn);

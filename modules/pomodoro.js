@@ -176,7 +176,9 @@ export const Pomodoro = GObject.registerClass({
             source.addNotification(notif);
         } catch (_) {
             try {
-                Gio.Subprocess.new(['notify-send', '-u', 'normal', title, body],
+                const ns = GLib.find_program_in_path('notify-send');
+                if (!ns) return;
+                Gio.Subprocess.new([ns, '-u', 'normal', title, body],
                     Gio.SubprocessFlags.STDERR_SILENCE);
             } catch (e) { logError(e, 'mertnotch:pomodoro:notify'); }
         }
