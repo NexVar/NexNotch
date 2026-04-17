@@ -32,14 +32,19 @@ export const QuickHub = GObject.registerClass({
     }
 
     start() {
+        this._stopped = false;
         this._refresh();
-        this._poller = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 5, () => {
+        /* 15 s is enough for privacy/BT status — 4 subprocess spawns per
+           refresh × 12/min was too aggressive. */
+        this._poller = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 15, () => {
+            if (this._stopped) return GLib.SOURCE_REMOVE;
             this._refresh();
             return GLib.SOURCE_CONTINUE;
         });
     }
 
     stop() {
+        this._stopped = true;
         if (this._poller) { GLib.source_remove(this._poller); this._poller = 0; }
     }
 

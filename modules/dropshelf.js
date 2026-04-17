@@ -56,12 +56,17 @@ export const DropShelf = GObject.registerClass({
             if (!file.query_exists(null)) return;
             const name = file.get_basename();
             const dest = Gio.File.new_for_path(GLib.build_filenamev([SHELF_DIR, this._safeName(name)]));
-            file.copy(dest, Gio.FileCopyFlags.OVERWRITE, null, null);
-            const info = dest.query_info('standard::size', Gio.FileQueryInfoFlags.NONE, null);
-            const item = {name, path: dest.get_path(), size: info.get_size(), state: 'idle'};
-            this._items.push(item);
-            this.emit('count-changed', this._items.length);
-            this._dispatch(item);
+            /* Non-blocking copy so large files don't freeze the shell. */
+            file.copy_async(dest, Gio.FileCopyFlags.OVERWRITE, GLib.PRIORITY_DEFAULT, null, null, (_, res) => {
+                try {
+                    file.copy_finish(res);
+                    const info = dest.query_info('standard::size', Gio.FileQueryInfoFlags.NONE, null);
+                    const item = {name, path: dest.get_path(), size: info.get_size(), state: 'idle'};
+                    this._items.push(item);
+                    this.emit('count-changed', this._items.length);
+                    this._dispatch(item);
+                } catch (e) { logError(e, 'mertnotch:dropshelf:addURI:finish'); }
+            });
         } catch (e) { logError(e, 'mertnotch:dropshelf:addURI'); }
     }
 

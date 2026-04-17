@@ -31,6 +31,7 @@ export const MprisWatcher = GObject.registerClass({
     }
 
     start() {
+        this._stopped = false;
         this._nameOwnerId = Gio.DBus.session.signal_subscribe(
             'org.freedesktop.DBus',
             'org.freedesktop.DBus',
@@ -49,6 +50,7 @@ export const MprisWatcher = GObject.registerClass({
     }
 
     stop() {
+        this._stopped = true;
         if (this._nameOwnerId) {
             try { Gio.DBus.session.signal_unsubscribe(this._nameOwnerId); } catch (_) {}
             this._nameOwnerId = 0;
@@ -87,7 +89,10 @@ export const MprisWatcher = GObject.registerClass({
         if (this._players.has(busName)) return;
         try {
             const proxy = PlayerProxy(Gio.DBus.session, busName, '/org/mpris/MediaPlayer2');
-            proxy._propChangedId = proxy.connect('g-properties-changed', () => this._recompute());
+            proxy._propChangedId = proxy.connect('g-properties-changed', () => {
+                if (this._stopped) return;
+                this._recompute();
+            });
             this._players.set(busName, proxy);
             this._recompute();
         } catch (e) { logError(e, 'mertnotch:mpris:add'); }

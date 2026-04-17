@@ -28,8 +28,9 @@ export const NotificationPeek = GObject.registerClass({
             try { Main.messageTray.disconnect(this._sourceAddedId); } catch (_) {}
             this._sourceAddedId = 0;
         }
-        for (const [source, id] of this._sourceConns) {
-            try { source.disconnect(id); } catch (_) {}
+        for (const [source, rec] of this._sourceConns) {
+            try { if (rec?.addedId)   source.disconnect(rec.addedId);   } catch (_) {}
+            try { if (rec?.destroyId) source.disconnect(rec.destroyId); } catch (_) {}
         }
         this._sourceConns.clear();
         for (const t of this._pendingDismiss.values()) GLib.source_remove(t);
@@ -40,11 +41,13 @@ export const NotificationPeek = GObject.registerClass({
 
     _trackSource(source) {
         if (this._sourceConns.has(source)) return;
-        const id = source.connect('notification-added', (_, notif) => this._onNotif(source, notif));
-        this._sourceConns.set(source, id);
-        source.connect('destroy', () => {
+        const addedId = source.connect('notification-added', (_, notif) => this._onNotif(source, notif));
+        const destroyId = source.connect('destroy', () => {
+            const rec = this._sourceConns.get(source);
+            if (rec?.addedId)   { try { source.disconnect(rec.addedId); }   catch (_) {} }
             this._sourceConns.delete(source);
         });
+        this._sourceConns.set(source, {addedId, destroyId});
     }
 
     _onNotif(source, notif) {

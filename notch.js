@@ -73,6 +73,8 @@ class Notch extends St.Widget {
         this._modules.notes.setGrabActor(this);
         /* show pomodoro mini label at startup with idle styling */
         this._pomoUpdateId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._pomoUpdateId = 0;
+            if (this._stopped) return GLib.SOURCE_REMOVE;
             this._updatePomodoroIndicator();
             return GLib.SOURCE_REMOVE;
         });
@@ -376,9 +378,12 @@ class Notch extends St.Widget {
     }
 
     stop() {
+        this._stopped = true;
         this._clearHoverTimeout();
         this._clearCollapseTimeout();
         this._stopClock();
+        if (this._pomoUpdateId) { GLib.source_remove(this._pomoUpdateId); this._pomoUpdateId = 0; }
+        if (this._peekTimer)    { GLib.source_remove(this._peekTimer);    this._peekTimer    = 0; }
         for (const m of Object.values(this._modules)) m.stop?.();
         this._restoreDateMenu();
         if (this._settingsSig) { this._settings.disconnect(this._settingsSig); this._settingsSig = 0; }
@@ -517,6 +522,7 @@ class Notch extends St.Widget {
         this._renderTab();
         /* Auto-fit height to content after it's laid out. */
         GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            if (this._stopped) return GLib.SOURCE_REMOVE;
             if (this._expanded) this._resizeExpanded();
             return GLib.SOURCE_REMOVE;
         });
@@ -590,6 +596,7 @@ class Notch extends St.Widget {
         this._content.set_child(child ?? new St.Label({text: '—', x_align: Clutter.ActorAlign.CENTER}));
         /* nudge height after child lays out */
         GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            if (this._stopped) return GLib.SOURCE_REMOVE;
             if (this._expanded) this._resizeExpanded();
             return GLib.SOURCE_REMOVE;
         });
@@ -736,8 +743,24 @@ class Notch extends St.Widget {
         const peek = new St.BoxLayout({
             style_class: 'mertnotch-peek',
             vertical: false, x_expand: true, y_expand: true,
+            reactive: true,
+            track_hover: true,
+            can_focus: true,
         });
         peek.set_style(this._bgStyle);
+
+        /* Clicking the body of the peek activates the notification (opens
+           the source app, marks as read, etc.) — same as clicking a native
+           banner. The dismiss button shortcuts out below. */
+        peek.connect('button-release-event', (_a, event) => {
+            if (event.get_button() !== 1) return Clutter.EVENT_PROPAGATE;
+            try {
+                if (typeof notif?.activate === 'function') notif.activate();
+                else if (typeof source?.open === 'function') source.open();
+            } catch (e) { logError(e, 'mertnotch:peek:activate'); }
+            this._dismissPeek(false);
+            return Clutter.EVENT_STOP;
+        });
 
         const gicon = this._resolveNotifIcon(source, notif);
         const iconBin = new St.Bin({style_class: 'mertnotch-peek-icon-bin', y_align: Clutter.ActorAlign.CENTER});
@@ -765,6 +788,9 @@ class Notch extends St.Widget {
             y_align: Clutter.ActorAlign.CENTER,
         });
         dismissBtn.connect('clicked', () => this._dismissPeek(false));
+        /* Stop the click from bubbling up to the peek (which would activate
+           the notification on top of dismissing it). */
+        dismissBtn.connect('button-release-event', () => Clutter.EVENT_STOP);
         peek.add_child(dismissBtn);
 
         this.add_child(peek);
