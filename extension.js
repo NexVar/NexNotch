@@ -1,6 +1,7 @@
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -12,19 +13,56 @@ export default class MertNotchExtension extends Extension {
         this._settings = this.getSettings();
         this._notch = new Notch(this);
 
-        const centerBox = Main.panel._centerBox;
-        centerBox.insert_child_at_index(this._notch, 0);
+        /* Mount the notch into the top chrome layer — OUTSIDE the panel's
+           actor tree. This keeps any Shell.BlurEffect that blur-my-shell
+           attaches to the panel from bleeding through the notch. */
+        Main.layoutManager.addTopChrome(this._notch, {
+            trackFullscreen: true,
+            affectsStruts: false,
+            affectsInputRegion: true,
+        });
+
+        this._reposition = () => this._positionNotch();
+        this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', this._reposition);
+        this._panelAllocId = Main.panel.connect('notify::allocation', this._reposition);
+        this._notchAllocId = this._notch.connect('notify::allocation', this._reposition);
+        this._positionNotch();
 
         this._notch.start();
     }
 
+    _positionNotch() {
+        if (!this._notch) return;
+        const monitor = Main.layoutManager.primaryMonitor;
+        if (!monitor) return;
+        const [, natW] = this._notch.get_preferred_width(-1);
+        const [, natH] = this._notch.get_preferred_height(natW);
+        const w = natW || this._notch.width || 240;
+        const x = monitor.x + Math.floor((monitor.width - w) / 2);
+        const y = monitor.y;
+        this._notch.set_position(x, y);
+    }
+
     disable() {
+        if (this._monitorsChangedId) {
+            Main.layoutManager.disconnect(this._monitorsChangedId);
+            this._monitorsChangedId = 0;
+        }
+        if (this._panelAllocId) {
+            try { Main.panel.disconnect(this._panelAllocId); } catch (_) {}
+            this._panelAllocId = 0;
+        }
+        if (this._notchAllocId) {
+            try { this._notch?.disconnect(this._notchAllocId); } catch (_) {}
+            this._notchAllocId = 0;
+        }
         if (this._notch) {
             this._notch.stop();
-            this._notch.get_parent()?.remove_child(this._notch);
+            try { Main.layoutManager.removeChrome(this._notch); } catch (_) {}
             this._notch.destroy();
             this._notch = null;
         }
+        this._reposition = null;
         this._settings = null;
     }
 }

@@ -216,12 +216,13 @@ class Notch extends St.Widget {
             style_class: 'mertnotch-media-icon',
             visible: false,
         });
-        this._statusDot = new St.Widget({style_class: 'mertnotch-dot', visible: false});
-        this._privacyDot = new St.Widget({style_class: 'mertnotch-privacy-dot', visible: false});
+        /* statusDot / privacyDot removed — see note above */
+        /* statusDot (hot CPU/RAM/temp) and privacyDot (mic/cam) removed per
+           user request — battery icon conveys charge, and user finds extra
+           coloured dots redundant. Privacy state is still visible in the
+           Quick tab. */
         this._leftCluster.add_child(this._batteryIcon);
         this._leftCluster.add_child(this._mediaIcon);
-        this._leftCluster.add_child(this._privacyDot);
-        this._leftCluster.add_child(this._statusDot);
 
         /* center clock */
         this._centerCluster = new St.BoxLayout({
@@ -389,15 +390,17 @@ class Notch extends St.Widget {
 
     _startClock() {
         this._updateClocks();
-        const doSeconds = this._settings.get_boolean('show-seconds');
-        const delay = doSeconds ? 1000 : ((60 - new Date().getSeconds()) * 1000 + 50);
-        this._clockTimer = GLib.timeout_add(GLib.PRIORITY_LOW, delay, () => {
+        this._scheduleClockTick();
+    }
+
+    _scheduleClockTick() {
+        const showSec = this._settings.get_boolean('show-seconds');
+        const period  = showSec ? 1000 : 60000;
+        const now = Date.now();
+        const delay = Math.max(20, period - (now % period));
+        this._clockTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
             this._updateClocks();
-            const period = this._settings.get_boolean('show-seconds') ? 1000 : 60000;
-            this._clockTimer = GLib.timeout_add(GLib.PRIORITY_LOW, period, () => {
-                this._updateClocks();
-                return GLib.SOURCE_CONTINUE;
-            });
+            this._scheduleClockTick();
             return GLib.SOURCE_REMOVE;
         });
     }
@@ -420,12 +423,20 @@ class Notch extends St.Widget {
         this._clockLabel.text = time;
         this._bigClock.text   = time;
         if (showDate) {
-            this._dateLabelC.text = now.toLocaleDateString([], {day: 'numeric', month: 'short'});
+            this._dateLabelC.text = this._formatCompactDate(now);
             this._dateLabelC.visible = true;
         } else {
             this._dateLabelC.visible = false;
         }
         this._dateLabel.text = now.toLocaleDateString([], {weekday: 'long', day: 'numeric', month: 'long'});
+    }
+
+    _formatCompactDate(d) {
+        const day   = d.getDate();
+        const month = d.toLocaleDateString([], {month: 'long'});
+        /* Full name if ≤5 chars, otherwise first 3 chars (Turkish convention) */
+        const display = month.length <= 5 ? month : month.slice(0, 3);
+        return `${day} ${display}`;
     }
 
     _clearHoverTimeout()    { if (this._hoverTimeout)    { GLib.source_remove(this._hoverTimeout);    this._hoverTimeout = 0; } }
@@ -538,9 +549,6 @@ class Notch extends St.Widget {
 
     _onSystemUpdated(stats) {
         this._latestStats = stats;
-        const hot = stats.cpu > 85 || stats.ram > 90 || stats.temp > 85;
-        this._statusDot.visible = hot;
-        this._statusDot.set_style_class_name('mertnotch-dot' + (hot ? ' hot' : ''));
         this._updateBatteryIcon(stats.battery);
         if (this._expanded && this._activeTab === 'system') this._renderTab();
     }
@@ -627,42 +635,85 @@ class Notch extends St.Widget {
     }
 
     _updatePrivacyIndicator() {
-        const q = this._modules?.quick;
-        if (!this._privacyDot) return;
-        const wasVisible = this._privacyDot.visible;
-        const active = q && (q._mic || q._cam);
-        this._privacyDot.visible = !!active;
-        this._privacyDot.remove_style_class_name('cam');
-        this._privacyDot.remove_style_class_name('mic');
-        if (q?._cam) this._privacyDot.add_style_class_name('cam');
-        else if (q?._mic) this._privacyDot.add_style_class_name('mic');
-        if (this._privacyDot.visible !== wasVisible) this._resizeCollapsed();
+        /* no-op — privacy dot removed from collapsed pill per user request.
+           Mic/Camera status is still visible in the Quick tab pills. */
     }
 
     _peekNotification(source, notif) {
         if (this._expanded) return;
         this._dismissPeek(true);
-        /* suppress native banner if user opted in */
         if (this._settings.get_boolean('notif-suppress-native')) {
-            try { Main.messageTray._banner?.close?.(); } catch (_) {}
+            this._killBanner(0); this._killBanner(60); this._killBanner(220);
         }
+
         const title = notif?.title ?? source?.title ?? 'Notification';
         const body  = notif?.bannerBodyText ?? notif?.body ?? '';
-        const peek = new St.BoxLayout({style_class: 'mertnotch-peek', vertical: true, x_expand: true, y_expand: true});
+        const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+        const peek = new St.BoxLayout({
+            style_class: 'mertnotch-peek',
+            vertical: false, x_expand: true, y_expand: true,
+        });
         peek.set_style(this._bgStyle);
-        peek.add_child(new St.Label({text: title, style_class: 'mertnotch-peek-title'}));
-        if (body) peek.add_child(new St.Label({text: body, style_class: 'mertnotch-peek-body'}));
+
+        const gicon = this._resolveNotifIcon(source, notif);
+        const iconBin = new St.Bin({style_class: 'mertnotch-peek-icon-bin', y_align: Clutter.ActorAlign.CENTER});
+        iconBin.set_child(new St.Icon({
+            gicon, icon_size: 28,
+            style_class: 'mertnotch-peek-icon',
+        }));
+        peek.add_child(iconBin);
+
+        const textCol = new St.BoxLayout({
+            vertical: true, x_expand: true, y_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            style_class: 'mertnotch-peek-text',
+        });
+        const titleRow = new St.BoxLayout();
+        titleRow.add_child(new St.Label({text: title, style_class: 'mertnotch-peek-title', x_expand: true}));
+        titleRow.add_child(new St.Label({text: timeStr, style_class: 'mertnotch-peek-time'}));
+        textCol.add_child(titleRow);
+        if (body) textCol.add_child(new St.Label({text: body, style_class: 'mertnotch-peek-body'}));
+        peek.add_child(textCol);
+
+        const dismissBtn = new St.Button({
+            style_class: 'mertnotch-peek-dismiss',
+            label: '✕',
+            y_align: Clutter.ActorAlign.CENTER,
+        });
+        dismissBtn.connect('clicked', () => this._dismissPeek(false));
+        peek.add_child(dismissBtn);
+
         this.add_child(peek);
         this._peekLayer  = peek;
         this._peekActive = true;
         this._collapsed.hide();
 
         this.remove_all_transitions();
-        this.ease({width: 460, height: 76, duration: 220, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
+        this.ease({width: 520, height: 78, duration: 240, mode: Clutter.AnimationMode.EASE_OUT_EXPO});
+        peek.opacity = 0;
+        peek.ease({opacity: 255, duration: 240, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
 
         this._peekTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, PEEK_DURATION_MS, () => {
             this._peekTimer = 0; this._dismissPeek(false); return GLib.SOURCE_REMOVE;
         });
+    }
+
+    _killBanner(delayMs) {
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, delayMs, () => {
+            try { Main.messageTray._banner?.close?.(); } catch (_) {}
+            try { Main.messageTray._bannerBin?.hide?.(); } catch (_) {}
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _resolveNotifIcon(source, notif) {
+        try {
+            if (notif?.gicon)    return notif.gicon;
+            if (source?.getIcon) return source.getIcon();
+            if (source?.icon)    return source.icon;
+        } catch (_) {}
+        return Gio.ThemedIcon.new('dialog-information-symbolic');
     }
 
     _dismissPeek(immediate) {

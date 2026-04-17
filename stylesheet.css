@@ -4,6 +4,7 @@
 
 .mertnotch {
     background-color: rgb(0, 0, 0);
+    border-radius: 0 0 20px 20px;
 }
 
 .mertnotch-bg {
@@ -443,21 +444,58 @@
 /* ——— peek (dynamic notification) ——— */
 
 .mertnotch-peek {
-    padding: 10px 18px;
-    spacing: 4px;
+    padding: 10px 12px 10px 14px;
+    spacing: 12px;
     background-color: rgb(0, 0, 0);
     border-radius: 0 0 20px 20px;
-    box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.45);
+    box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.55);
 }
+
+.mertnotch-peek-icon-bin {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 2px 2px 2px 4px;
+}
+.mertnotch-peek-icon {
+    color: rgba(255, 255, 255, 0.92);
+    icon-size: 28px;
+}
+
+.mertnotch-peek-text { spacing: 2px; }
+
 .mertnotch-peek-title {
     color: white;
     font-family: "SF Pro Display", "Inter", sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
+    letter-spacing: 0.1px;
 }
+
+.mertnotch-peek-time {
+    color: rgba(255, 255, 255, 0.5);
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    font-feature-settings: "tnum";
+    padding-left: 6px;
+}
+
 .mertnotch-peek-body {
-    color: rgba(255, 255, 255, 0.74);
+    color: rgba(255, 255, 255, 0.78);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
     font-weight: 400;
+}
+
+.mertnotch-peek-dismiss {
+    color: rgba(255, 255, 255, 0.55);
+    background-color: transparent;
+    border: 0;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+}
+.mertnotch-peek-dismiss:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
 }
