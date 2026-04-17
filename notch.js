@@ -758,28 +758,21 @@ class Notch extends St.Widget {
         if (!this._pomoLabel) return;
         const wasVisible = this._pomoLabel.visible;
         this._pomoLabel.remove_style_class_name('break');
-        this._pomoLabel.remove_style_class_name('idle');
         this._pomoLabel.remove_style_class_name('paused');
-        if (!p) { this._pomoLabel.visible = false; }
-        else if (p.isActive()) {
+        if (!p || (!p.isActive() && p.getState() !== 'paused')) {
+            /* Idle — hide completely. Pomo label only appears once the
+               user has actually started a session. */
+            this._pomoLabel.visible = false;
+        } else if (p.isActive()) {
             this._pomoLabel.text = p.formatRemain();
             this._pomoLabel.visible = true;
             if (p.getState() === 'break' || p.getState() === 'longbreak') {
                 this._pomoLabel.add_style_class_name('break');
             }
-        } else if (p.getState() === 'paused') {
+        } else {
             this._pomoLabel.text = `⏸ ${p.formatRemain()}`;
             this._pomoLabel.visible = true;
             this._pomoLabel.add_style_class_name('paused');
-        } else {
-            /* idle — show the active preset's work time faded so the label
-               is always visible once user has discovered the feature. */
-            const preset = this._settings.get_string('pomodoro-active-preset') || '25/5';
-            const m = preset.match(/^(\d+)/);
-            const work = m ? Number(m[1]) : 25;
-            this._pomoLabel.text = `${work}:00`;
-            this._pomoLabel.visible = true;
-            this._pomoLabel.add_style_class_name('idle');
         }
         if (this._pomoLabel.visible !== wasVisible) this._resizeCollapsed();
     }
