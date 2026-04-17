@@ -85,17 +85,32 @@ export const QuickHub = GObject.registerClass({
     }
 
     async _anyCameraUsing() {
-        return await new Promise(resolve => {
-            if (!GLib.find_program_in_path('fuser')) { resolve(false); return; }
+        /* Avoid `sh -c` entirely — enumerate /dev/video* ourselves and spawn
+           fuser directly with an explicit absolute path. Portable and the
+           spawn matches the guarded binary. */
+        const fuserPath = GLib.find_program_in_path('fuser');
+        if (!fuserPath) return false;
+        const devs = [];
+        try {
+            const dir = Gio.File.new_for_path('/dev');
+            const iter = dir.enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
+            let info;
+            while ((info = iter.next_file(null))) {
+                const n = info.get_name();
+                if (/^video\d+$/.test(n)) devs.push(`/dev/${n}`);
+            }
+        } catch (_) { return false; }
+        if (devs.length === 0) return false;
+        return new Promise(resolve => {
             try {
                 const proc = Gio.Subprocess.new(
-                    ['sh', '-c', 'fuser /dev/video* 2>/dev/null | wc -w'],
+                    [fuserPath, ...devs],
                     Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
                 );
                 proc.communicate_utf8_async(null, null, (p, res) => {
                     try {
                         const [, out] = p.communicate_utf8_finish(res);
-                        resolve(Number(out.trim()) > 0);
+                        resolve(out.trim().length > 0);
                     } catch (_) { resolve(false); }
                 });
             } catch (_) { resolve(false); }
