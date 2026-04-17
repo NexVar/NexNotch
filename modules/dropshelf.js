@@ -148,7 +148,16 @@ export const DropShelf = GObject.registerClass({
         this.emit('count-changed', this._items.length);
         try {
             const token = await getAccessToken(accountEmail);
-            const data = GLib.file_get_contents(item.path)[1];
+            /* async file read so large uploads don't freeze the shell */
+            const data = await new Promise((resolve, reject) => {
+                const file = Gio.File.new_for_path(item.path);
+                file.load_contents_async(null, (_, res) => {
+                    try {
+                        const [, bytes] = file.load_contents_finish(res);
+                        resolve(bytes);
+                    } catch (e) { reject(e); }
+                });
+            });
             const metadata = JSON.stringify({
                 name: item.name,
                 parents: [folderId],

@@ -172,11 +172,14 @@ export const QuickHub = GObject.registerClass({
 
         box.add_child(new St.Label({text: 'System', style_class: 'mertnotch-quick-section'}));
         const actions = new St.BoxLayout({style_class: 'mertnotch-quick-actions'});
+        /* Lock and Suspend are safe one-click; Log out / Reboot / Shutdown
+           require a second confirmation click within 3 s ("Really?" arm
+           state) so accidental taps in a tiny hover panel don't kill work. */
         actions.add_child(this._actionButton('Lock',      () => this._run(['loginctl', 'lock-session'])));
         actions.add_child(this._actionButton('Suspend',   () => this._run(['systemctl', 'suspend'])));
-        actions.add_child(this._actionButton('Log out',   () => this._run(['gnome-session-quit', '--logout', '--no-prompt'])));
-        actions.add_child(this._actionButton('Reboot',    () => this._run(['systemctl', 'reboot'])));
-        actions.add_child(this._actionButton('Shutdown',  () => this._run(['systemctl', 'poweroff'])));
+        actions.add_child(this._armedActionButton('Log out',  ['gnome-session-quit', '--logout', '--no-prompt']));
+        actions.add_child(this._armedActionButton('Reboot',   ['systemctl', 'reboot']));
+        actions.add_child(this._armedActionButton('Shutdown', ['systemctl', 'poweroff']));
         box.add_child(actions);
 
         return box;
@@ -190,8 +193,41 @@ export const QuickHub = GObject.registerClass({
     }
 
     _actionButton(label, cb) {
-        const b = new St.Button({style_class: 'mertnotch-quick-action', label});
+        const b = new St.Button({style_class: 'mertnotch-quick-action', label, accessible_name: label, can_focus: true});
         b.connect('clicked', cb);
+        return b;
+    }
+
+    _armedActionButton(label, argv) {
+        const b = new St.Button({
+            style_class: 'mertnotch-quick-action',
+            label,
+            accessible_name: `${label} (click twice to confirm)`,
+            can_focus: true,
+        });
+        let armed = false;
+        let armTimer = 0;
+        b.connect('clicked', () => {
+            if (armed) {
+                armed = false;
+                if (armTimer) { GLib.source_remove(armTimer); armTimer = 0; }
+                b.label = label;
+                b.remove_style_class_name('armed');
+                this._run(argv);
+                return;
+            }
+            armed = true;
+            b.label = 'Really?';
+            b.add_style_class_name('armed');
+            if (armTimer) GLib.source_remove(armTimer);
+            armTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                armTimer = 0;
+                armed = false;
+                b.label = label;
+                b.remove_style_class_name('armed');
+                return GLib.SOURCE_REMOVE;
+            });
+        });
         return b;
     }
 

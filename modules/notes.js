@@ -41,6 +41,7 @@ class Notes extends GObject.Object {
             if (typeof Main.popModal === 'function') Main.popModal(this._grab);
         } catch (_) {}
         this._grab = null;
+        if (this._grabActor) this._grabActor._notesFocused = false;
     }
 
     render() {
@@ -74,7 +75,13 @@ class Notes extends GObject.Object {
                 global.stage.set_key_focus(clutterText);
                 clutterText.grab_key_focus();
             } catch (_) {}
+            /* Signal the notch not to collapse while we're typing. */
+            if (this._grabActor) this._grabActor._notesFocused = true;
         };
+        const blurEntry = () => {
+            if (this._grabActor) this._grabActor._notesFocused = false;
+        };
+        clutterText.connect('key-focus-out', blurEntry);
         entry.connect('button-press-event', () => { focusEntry(); return Clutter.EVENT_PROPAGATE; });
         clutterText.connect('button-press-event', () => { focusEntry(); return Clutter.EVENT_PROPAGATE; });
         clutterText.connect('key-press-event', (_a, event) => {
@@ -90,8 +97,16 @@ class Notes extends GObject.Object {
         const footer = new St.BoxLayout({style_class: 'mertnotch-notes-footer'});
         const info = new St.Label({text: 'Saved automatically', style_class: 'mertnotch-notes-info', x_expand: true});
         footer.add_child(info);
-        const clear = new St.Button({style_class: 'mertnotch-notes-clear', label: 'Clear'});
+        const clear = new St.Button({
+            style_class: 'mertnotch-notes-clear',
+            label: 'Clear',
+            accessible_name: 'Clear all notes',
+            can_focus: true,
+        });
         clear.connect('clicked', () => {
+            /* Cancel any pending debounced save so it can't overwrite the
+               clear with the previous text. */
+            if (this._saveTimer) { GLib.source_remove(this._saveTimer); this._saveTimer = 0; }
             clutterText.set_text('');
             this._settings.set_string('notes-content', '');
         });

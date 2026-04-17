@@ -24,21 +24,32 @@ export const Weather = GObject.registerClass({
 
     start() {
         this._fetchAll();
-        const minutes = this._settings.get_int('weather-refresh');
-        this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, minutes * 60, () => {
-            this._fetchAll();
-            return GLib.SOURCE_CONTINUE;
-        });
+        this._restartTimer();
         this._settingsSig  = this._settings.connect('changed::weather-location',   () => this._fetchAll());
         this._settingsSig2 = this._settings.connect('changed::weather-unit',       () => this._fetchAll());
         this._settingsSig3 = this._settings.connect('changed::weather-location-2', () => this._fetchAll());
+        this._settingsSig4 = this._settings.connect('changed::weather-refresh',    () => this._restartTimer());
     }
 
     _fetchAll() {
         this._fetch(1);
         const loc2 = this._settings.get_string('weather-location-2');
         if (loc2 && loc2.trim()) this._fetch(2);
-        else { this._data2 = null; this.emit('updated'); }
+        else {
+            this._data2 = null;
+            /* If secondary was selected but just removed, fall back to primary */
+            if (this._active === 2) this._active = 1;
+            this.emit('updated');
+        }
+    }
+
+    _restartTimer() {
+        if (this._timer) { GLib.source_remove(this._timer); this._timer = 0; }
+        const minutes = Math.max(1, this._settings.get_int('weather-refresh'));
+        this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, minutes * 60, () => {
+            this._fetchAll();
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     stop() {
@@ -46,6 +57,7 @@ export const Weather = GObject.registerClass({
         if (this._settingsSig)  { this._settings.disconnect(this._settingsSig);  this._settingsSig = 0; }
         if (this._settingsSig2) { this._settings.disconnect(this._settingsSig2); this._settingsSig2 = 0; }
         if (this._settingsSig3) { this._settings.disconnect(this._settingsSig3); this._settingsSig3 = 0; }
+        if (this._settingsSig4) { this._settings.disconnect(this._settingsSig4); this._settingsSig4 = 0; }
     }
 
     destroy() { this.stop(); }

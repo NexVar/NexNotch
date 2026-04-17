@@ -116,6 +116,45 @@ export const CalendarPeek = GObject.registerClass({
         this.emit('updated');
     }
 
+    _filterEvents(events) {
+        const enabled = this._settings.get_strv('calendar-enabled-sources');
+        if (enabled.length === 0) return events;
+        /* Event IDs from Shell.CalendarServer are `SourceUID:EventUID`.
+           We map SourceUID to GOA email via the EDS registry if available. */
+        try {
+            const emailFor = this._sourceEmailMap();
+            return events.filter(e => {
+                const srcUid = (e.id ?? '').split(':')[0];
+                const email = emailFor.get(srcUid);
+                return !email || enabled.includes(email);
+            });
+        } catch (_) { return events; }
+    }
+
+    _sourceEmailMap() {
+        if (this._emailMap) return this._emailMap;
+        this._emailMap = new Map();
+        if (!_EDataServer) return this._emailMap;
+        try {
+            const registry = _EDataServer.SourceRegistry.new_sync(null);
+            const all = registry.list_sources(null);
+            for (const src of all) {
+                const uid = src.get_uid();
+                let parent = src;
+                for (let i = 0; i < 8 && parent; i++) {
+                    if (parent.has_extension?.('Authentication')) {
+                        const auth = parent.get_extension('Authentication');
+                        const user = auth?.get_user?.();
+                        if (user?.includes('@')) { this._emailMap.set(uid, user); break; }
+                    }
+                    const parentUid = parent.get_parent?.();
+                    parent = parentUid ? registry.ref_source(parentUid) : null;
+                }
+            }
+        } catch (e) { logError(e, 'mertnotch:calendar:emailMap'); }
+        return this._emailMap;
+    }
+
     _onEventsRemoved(ids) {
         this._events = this._events.filter(e => !ids.includes(e.id));
         this.emit('updated');
@@ -198,7 +237,8 @@ export const CalendarPeek = GObject.registerClass({
 
     _renderCalendar() {
         const box = new St.BoxLayout({style_class: 'mertnotch-cal', vertical: true, x_expand: true, y_expand: true});
-        if (this._events.length === 0) {
+        const events = this._filterEvents(this._events);
+        if (events.length === 0) {
             box.add_child(new St.Label({
                 text: 'No upcoming events',
                 style_class: 'mertnotch-empty',
@@ -206,7 +246,7 @@ export const CalendarPeek = GObject.registerClass({
             }));
             return box;
         }
-        for (const ev of this._events.slice(0, 7)) {
+        for (const ev of events.slice(0, 7)) {
             const row = new St.BoxLayout({style_class: 'mertnotch-cal-row'});
             row.add_child(new St.Label({text: this._formatTime(ev), style_class: 'mertnotch-cal-when'}));
             row.add_child(new St.Label({text: ev.summary, style_class: 'mertnotch-cal-title', x_expand: true}));

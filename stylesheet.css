@@ -206,6 +206,11 @@
     transition-duration: 160ms;
 }
 .mertnotch-quick-action:hover { background-color: rgba(255, 255, 255, 0.14); color: white; }
+.mertnotch-quick-action.armed {
+    background-color: rgba(255, 100, 90, 0.35);
+    color: white;
+    font-weight: 700;
+}
 
 .mertnotch-clock {
     color: rgba(255, 255, 255, 0.96);

@@ -86,7 +86,20 @@ export const Pomodoro = GObject.registerClass({
     }
 
     resume() {
-        if (this._prev) { this._state = this._prev; this._prev = null; this._run(); }
+        if (this._prev) {
+            this._state = this._prev;
+            this._prev = null;
+            /* keep the original _startedAt — we're continuing, not restarting */
+            this.emit('state', this._state);
+            this.emit('tick');
+            if (this._timer) GLib.source_remove(this._timer);
+            this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 1, () => {
+                this._remain--;
+                if (this._remain <= 0) { this._timer = 0; this._onComplete(); return GLib.SOURCE_REMOVE; }
+                this.emit('tick');
+                return GLib.SOURCE_CONTINUE;
+            });
+        }
     }
 
     reset() {
@@ -132,7 +145,11 @@ export const Pomodoro = GObject.registerClass({
     _logCompleted(completed) {
         if (!this._startedAt) return;
         const {work, brk} = this._activePreset();
-        const plannedSec = (this._state === 'work') ? work * 60 : brk * 60;
+        const longMin = this._settings.get_int('pomodoro-long');
+        let plannedSec;
+        if      (this._state === 'work')      plannedSec = work * 60;
+        else if (this._state === 'longbreak') plannedSec = longMin * 60;
+        else                                  plannedSec = brk * 60;
         const endedAt = new Date();
         _appendSession({
             started_at: this._startedAt.toISOString(),

@@ -198,6 +198,13 @@ class Notch extends St.Widget {
             this._updateClocks();
             this._resizeCollapsed();
         }
+        if (key.startsWith('show-') && key !== 'show-seconds' && key !== 'show-date') {
+            for (const [id, btn] of Object.entries(this._tabButtons ?? {})) {
+                btn.visible = this._tabEnabled(id);
+            }
+            /* If the currently-active tab was disabled, switch to System. */
+            if (!this._tabEnabled(this._activeTab)) this._switchTab('system');
+        }
     }
 
     _buildLayers() {
@@ -290,6 +297,7 @@ class Notch extends St.Widget {
                 can_focus: true,
                 x_expand: true,
                 track_hover: true,
+                visible: this._tabEnabled(id),
             });
             btn.connect('clicked', () => this._switchTab(id));
             this._tabs.add_child(btn);
@@ -370,6 +378,22 @@ class Notch extends St.Widget {
         }[id] ?? id;
     }
 
+    _tabEnabled(id) {
+        /* Each tab is gated by a show-* gsettings key. System / Quick have
+           no toggle; everything else follows its key. */
+        const key = {
+            shelf:    'show-dropshelf',
+            calendar: 'show-calendar',
+            tasks:    'show-tasks',
+            notes:    null,   /* always on — no key */
+            weather:  null,
+            pomodoro: null,
+            stats:    null,
+        }[id];
+        if (!key) return true;
+        return this._settings.get_boolean(key);
+    }
+
     start() {
         for (const m of Object.values(this._modules)) m.start?.();
         this._switchTab('system');
@@ -384,6 +408,10 @@ class Notch extends St.Widget {
         this._stopClock();
         if (this._pomoUpdateId) { GLib.source_remove(this._pomoUpdateId); this._pomoUpdateId = 0; }
         if (this._peekTimer)    { GLib.source_remove(this._peekTimer);    this._peekTimer    = 0; }
+        for (const id of this._bannerKillTimers ?? []) {
+            try { GLib.source_remove(id); } catch (_) {}
+        }
+        this._bannerKillTimers?.clear();
         for (const m of Object.values(this._modules)) m.stop?.();
         this._restoreDateMenu();
         if (this._settingsSig) { this._settings.disconnect(this._settingsSig); this._settingsSig = 0; }
@@ -824,11 +852,13 @@ class Notch extends St.Widget {
     }
 
     _killBanner(delayMs) {
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, delayMs, () => {
+        const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delayMs, () => {
+            this._bannerKillTimers?.delete(id);
             try { Main.messageTray._banner?.close?.(); } catch (_) {}
             try { Main.messageTray._bannerBin?.hide?.(); } catch (_) {}
             return GLib.SOURCE_REMOVE;
         });
+        (this._bannerKillTimers ??= new Set()).add(id);
     }
 
     _resolveNotifIcon(source, notif) {
