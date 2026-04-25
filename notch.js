@@ -30,8 +30,8 @@ export const Notch = GObject.registerClass(
 class Notch extends St.Widget {
     _init(extension) {
         super._init({
-            name: 'mertnotch',
-            style_class: 'mertnotch',
+            name: 'nexnotch',
+            style_class: 'nexnotch',
             reactive: true,
             track_hover: true,
             can_focus: false,
@@ -214,29 +214,29 @@ class Notch extends St.Widget {
     }
 
     _buildLayers() {
-        this._bg = new St.Widget({style_class: 'mertnotch-bg', x_expand: true, y_expand: true});
+        this._bg = new St.Widget({style_class: 'nexnotch-bg', x_expand: true, y_expand: true});
         this.add_child(this._bg);
 
         /* collapsed layout:  [battery] [media]   HH:MM   [date]   [shelf#] */
         this._collapsed = new St.BoxLayout({
-            style_class: 'mertnotch-collapsed',
+            style_class: 'nexnotch-collapsed',
             vertical: false,
             x_expand: true, y_expand: true,
         });
         this.add_child(this._collapsed);
 
         /* left cluster */
-        this._leftCluster = new St.BoxLayout({style_class: 'mertnotch-cluster mertnotch-left', vertical: false});
+        this._leftCluster = new St.BoxLayout({style_class: 'nexnotch-cluster nexnotch-left', vertical: false});
         this._batteryIcon = new St.Icon({
             icon_name: 'battery-full-symbolic',
             icon_size: 14,
-            style_class: 'mertnotch-battery-icon',
+            style_class: 'nexnotch-battery-icon',
             visible: false,
         });
         this._mediaIcon = new St.Icon({
             icon_name: 'audio-x-generic-symbolic',
             icon_size: 14,
-            style_class: 'mertnotch-media-icon',
+            style_class: 'nexnotch-media-icon',
             visible: false,
         });
         /* statusDot / privacyDot removed — see note above */
@@ -244,39 +244,39 @@ class Notch extends St.Widget {
            user request — battery icon conveys charge, and user finds extra
            coloured dots redundant. Privacy state is still visible in the
            Quick tab. */
-        this._pomoLabel = new St.Label({text: '', style_class: 'mertnotch-pomo-mini', visible: false, y_align: Clutter.ActorAlign.CENTER});
+        this._pomoLabel = new St.Label({text: '', style_class: 'nexnotch-pomo-mini', visible: false, y_align: Clutter.ActorAlign.CENTER});
         this._leftCluster.add_child(this._pomoLabel);
         this._leftCluster.add_child(this._batteryIcon);
         this._leftCluster.add_child(this._mediaIcon);
         /* music pill — extends the collapsed notch with track title + artist
            in the Dynamic Island / NotchNook style when MPRIS is active */
         this._musicPill = new St.BoxLayout({
-            style_class: 'mertnotch-music-pill',
+            style_class: 'nexnotch-music-pill',
             vertical: false,
             visible: false,
             y_align: Clutter.ActorAlign.CENTER,
         });
-        this._musicTitle  = new St.Label({style_class: 'mertnotch-music-title'});
-        this._musicArtist = new St.Label({style_class: 'mertnotch-music-artist'});
+        this._musicTitle  = new St.Label({style_class: 'nexnotch-music-title'});
+        this._musicArtist = new St.Label({style_class: 'nexnotch-music-artist'});
         this._musicPill.add_child(this._musicTitle);
-        this._musicPill.add_child(new St.Label({text: ' · ', style_class: 'mertnotch-music-sep'}));
+        this._musicPill.add_child(new St.Label({text: ' · ', style_class: 'nexnotch-music-sep'}));
         this._musicPill.add_child(this._musicArtist);
         this._leftCluster.add_child(this._musicPill);
 
         /* center clock */
         this._centerCluster = new St.BoxLayout({
-            style_class: 'mertnotch-cluster mertnotch-center',
+            style_class: 'nexnotch-cluster nexnotch-center',
             vertical: false,
             x_expand: true,
             x_align: Clutter.ActorAlign.CENTER,
         });
-        this._clockLabel = new St.Label({text: '', style_class: 'mertnotch-clock', y_align: Clutter.ActorAlign.CENTER});
+        this._clockLabel = new St.Label({text: '', style_class: 'nexnotch-clock', y_align: Clutter.ActorAlign.CENTER});
         this._centerCluster.add_child(this._clockLabel);
 
         /* right cluster: date + shelf badge */
-        this._rightCluster = new St.BoxLayout({style_class: 'mertnotch-cluster mertnotch-right', vertical: false});
-        this._dateLabelC = new St.Label({text: '', style_class: 'mertnotch-date-mini', y_align: Clutter.ActorAlign.CENTER});
-        this._shelfBadge = new St.Label({text: '', style_class: 'mertnotch-shelf-badge', visible: false, y_align: Clutter.ActorAlign.CENTER});
+        this._rightCluster = new St.BoxLayout({style_class: 'nexnotch-cluster nexnotch-right', vertical: false});
+        this._dateLabelC = new St.Label({text: '', style_class: 'nexnotch-date-mini', y_align: Clutter.ActorAlign.CENTER});
+        this._shelfBadge = new St.Label({text: '', style_class: 'nexnotch-shelf-badge', visible: false, y_align: Clutter.ActorAlign.CENTER});
         /* pomoLabel now lives in _leftCluster (user-preferred position) */
         this._rightCluster.add_child(this._dateLabelC);
         this._rightCluster.add_child(this._shelfBadge);
@@ -287,7 +287,7 @@ class Notch extends St.Widget {
 
         /* expanded layer */
         this._expandedLayer = new St.BoxLayout({
-            style_class: 'mertnotch-expanded',
+            style_class: 'nexnotch-expanded',
             vertical: true,
             x_expand: true, y_expand: true,
             opacity: 0,
@@ -295,16 +295,16 @@ class Notch extends St.Widget {
         });
         this.add_child(this._expandedLayer);
 
-        this._header = new St.BoxLayout({style_class: 'mertnotch-header', vertical: false});
-        this._bigClock  = new St.Label({text: '', style_class: 'mertnotch-big-clock'});
-        this._dateLabel = new St.Label({text: '', style_class: 'mertnotch-date'});
+        this._header = new St.BoxLayout({style_class: 'nexnotch-header', vertical: false});
+        this._bigClock  = new St.Label({text: '', style_class: 'nexnotch-big-clock'});
+        this._dateLabel = new St.Label({text: '', style_class: 'nexnotch-date'});
         this._header.add_child(this._bigClock);
         this._header.add_child(new St.Widget({x_expand: true}));
         this._header.add_child(this._dateLabel);
         this._expandedLayer.add_child(this._header);
 
-        this._tabs = new St.BoxLayout({style_class: 'mertnotch-tabs', vertical: false});
-        this._content = new St.Bin({style_class: 'mertnotch-content', x_expand: true, y_expand: true});
+        this._tabs = new St.BoxLayout({style_class: 'nexnotch-tabs', vertical: false});
+        this._content = new St.Bin({style_class: 'nexnotch-content', x_expand: true, y_expand: true});
         this._expandedLayer.add_child(this._tabs);
         this._expandedLayer.add_child(this._content);
 
@@ -312,7 +312,7 @@ class Notch extends St.Widget {
         const tabIds = ['system', 'calendar', 'tasks', 'shelf', 'notes', 'weather', 'pomodoro', 'stats', 'quick'];
         for (const id of tabIds) {
             const btn = new St.Button({
-                style_class: 'mertnotch-tab',
+                style_class: 'nexnotch-tab',
                 label: this._tabLabel(id),
                 can_focus: true,
                 x_expand: true,
@@ -331,7 +331,7 @@ class Notch extends St.Widget {
         this._delegate = this;
         if (Main.xdndHandler) {
             this._xdndBeginId = Main.xdndHandler.connect('drag-begin', () => {
-                log('mertnotch: xdnd drag-begin received');
+                log('nexnotch: xdnd drag-begin received');
                 this._xdndActive = true;
                 if (!this._expanded) {
                     this._clearHoverTimeout();
@@ -343,13 +343,13 @@ class Notch extends St.Widget {
                 this._bg?.add_style_class_name('drag-active');
             });
             this._xdndEndId = Main.xdndHandler.connect('drag-end', () => {
-                log('mertnotch: xdnd drag-end received');
+                log('nexnotch: xdnd drag-end received');
                 this._xdndActive = false;
                 this._bg?.remove_style_class_name('drag-active');
                 if (!this.hover) this._scheduleCollapse();
             });
         } else {
-            log('mertnotch: Main.xdndHandler unavailable — external drag-drop will not work');
+            log('nexnotch: Main.xdndHandler unavailable — external drag-drop will not work');
         }
         try {
             Main.wm.addKeybinding('shortcut-filepicker',
@@ -363,7 +363,7 @@ class Notch extends St.Widget {
                 Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
                 () => this._expanded ? this._collapse() : this._expand());
             this._keybindings = ['shortcut-filepicker', 'shortcut-toggle'];
-        } catch (e) { logError(e, 'mertnotch:keybinding'); }
+        } catch (e) { logError(e, 'nexnotch:keybinding'); }
     }
 
     acceptDrop(source) {
@@ -781,28 +781,28 @@ class Notch extends St.Widget {
     _buildMusicCard() {
         const info = this._latestMedia;
         if (!info || (!info.playing && !info.paused)) return null;
-        const card = new St.BoxLayout({style_class: 'mertnotch-music-card', vertical: true});
-        const top = new St.BoxLayout({style_class: 'mertnotch-music-card-top'});
+        const card = new St.BoxLayout({style_class: 'nexnotch-music-card', vertical: true});
+        const top = new St.BoxLayout({style_class: 'nexnotch-music-card-top'});
         let art = null;
         if (info.artUrl && info.artUrl.startsWith('file://')) {
             try {
                 const path = decodeURIComponent(info.artUrl.slice(7));
-                art = new St.Icon({gicon: Gio.FileIcon.new(Gio.File.new_for_path(path)), icon_size: 44, style_class: 'mertnotch-music-art'});
+                art = new St.Icon({gicon: Gio.FileIcon.new(Gio.File.new_for_path(path)), icon_size: 44, style_class: 'nexnotch-music-art'});
             } catch (_) {}
         }
         if (!art) {
-            art = new St.Icon({icon_name: this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic', icon_size: 32, style_class: 'mertnotch-music-art-fallback'});
+            art = new St.Icon({icon_name: this._resolveMediaIcon(info.icon) ?? 'audio-x-generic-symbolic', icon_size: 32, style_class: 'nexnotch-music-art-fallback'});
         }
         top.add_child(art);
-        const txt = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'mertnotch-music-txt', y_align: Clutter.ActorAlign.CENTER});
-        txt.add_child(new St.Label({text: (info.title || 'Unknown').slice(0, 28), style_class: 'mertnotch-music-card-title'}));
-        txt.add_child(new St.Label({text: (info.artist || '').slice(0, 28), style_class: 'mertnotch-music-card-artist'}));
+        const txt = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-music-txt', y_align: Clutter.ActorAlign.CENTER});
+        txt.add_child(new St.Label({text: (info.title || 'Unknown').slice(0, 28), style_class: 'nexnotch-music-card-title'}));
+        txt.add_child(new St.Label({text: (info.artist || '').slice(0, 28), style_class: 'nexnotch-music-card-artist'}));
         top.add_child(txt);
         card.add_child(top);
 
-        const ctrls = new St.BoxLayout({style_class: 'mertnotch-music-ctrls', x_align: Clutter.ActorAlign.CENTER});
+        const ctrls = new St.BoxLayout({style_class: 'nexnotch-music-ctrls', x_align: Clutter.ActorAlign.CENTER});
         const mk = (label, cb, accName, enabled = true) => {
-            const b = new St.Button({style_class: 'mertnotch-music-btn', label, accessible_name: accName, can_focus: true, reactive: enabled});
+            const b = new St.Button({style_class: 'nexnotch-music-btn', label, accessible_name: accName, can_focus: true, reactive: enabled});
             if (!enabled) b.add_style_class_name('disabled');
             if (enabled) b.connect('clicked', cb);
             return b;
@@ -888,7 +888,7 @@ class Notch extends St.Widget {
         const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 
         const peek = new St.BoxLayout({
-            style_class: 'mertnotch-peek',
+            style_class: 'nexnotch-peek',
             vertical: false, x_expand: true, y_expand: true,
             reactive: true,
             track_hover: true,
@@ -904,33 +904,33 @@ class Notch extends St.Widget {
             try {
                 if (typeof notif?.activate === 'function') notif.activate();
                 else if (typeof source?.open === 'function') source.open();
-            } catch (e) { logError(e, 'mertnotch:peek:activate'); }
+            } catch (e) { logError(e, 'nexnotch:peek:activate'); }
             this._dismissPeek(false);
             return Clutter.EVENT_STOP;
         });
 
         const gicon = this._resolveNotifIcon(source, notif);
-        const iconBin = new St.Bin({style_class: 'mertnotch-peek-icon-bin', y_align: Clutter.ActorAlign.CENTER});
+        const iconBin = new St.Bin({style_class: 'nexnotch-peek-icon-bin', y_align: Clutter.ActorAlign.CENTER});
         iconBin.set_child(new St.Icon({
             gicon, icon_size: 28,
-            style_class: 'mertnotch-peek-icon',
+            style_class: 'nexnotch-peek-icon',
         }));
         peek.add_child(iconBin);
 
         const textCol = new St.BoxLayout({
             vertical: true, x_expand: true, y_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
-            style_class: 'mertnotch-peek-text',
+            style_class: 'nexnotch-peek-text',
         });
         const titleRow = new St.BoxLayout();
-        titleRow.add_child(new St.Label({text: title, style_class: 'mertnotch-peek-title', x_expand: true}));
-        titleRow.add_child(new St.Label({text: timeStr, style_class: 'mertnotch-peek-time'}));
+        titleRow.add_child(new St.Label({text: title, style_class: 'nexnotch-peek-title', x_expand: true}));
+        titleRow.add_child(new St.Label({text: timeStr, style_class: 'nexnotch-peek-time'}));
         textCol.add_child(titleRow);
-        if (body) textCol.add_child(new St.Label({text: body, style_class: 'mertnotch-peek-body'}));
+        if (body) textCol.add_child(new St.Label({text: body, style_class: 'nexnotch-peek-body'}));
         peek.add_child(textCol);
 
         const dismissBtn = new St.Button({
-            style_class: 'mertnotch-peek-dismiss',
+            style_class: 'nexnotch-peek-dismiss',
             label: '✕',
             y_align: Clutter.ActorAlign.CENTER,
             accessible_name: 'Dismiss notification',
@@ -1008,7 +1008,7 @@ class Notch extends St.Widget {
     openFilePicker() {
         const zenity = GLib.find_program_in_path('zenity');
         if (!zenity) {
-            log('mertnotch: zenity not installed — drag-drop via `+ Add` is unavailable');
+            log('nexnotch: zenity not installed — drag-drop via `+ Add` is unavailable');
             return;
         }
         try {
@@ -1024,10 +1024,10 @@ class Notch extends St.Widget {
                         const uri = line.startsWith('/') ? Gio.File.new_for_path(line).get_uri() : line;
                         this._modules.dropshelf.addURI(uri);
                     }
-                } catch (e) { logError(e, 'mertnotch:filepicker:finish'); }
+                } catch (e) { logError(e, 'nexnotch:filepicker:finish'); }
             });
         } catch (e) {
-            logError(e, 'mertnotch:filepicker');
+            logError(e, 'nexnotch:filepicker');
         }
     }
 });

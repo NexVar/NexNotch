@@ -1,4 +1,4 @@
-UUID    := mertnotch@mertdlkr
+UUID    := nexnotch@nexvar
 PREFIX  := $(HOME)/.local/share/gnome-shell/extensions
 DEST    := $(PREFIX)/$(UUID)
 FILES   := metadata.json extension.js notch.js prefs.js stylesheet.css \
@@ -24,7 +24,7 @@ pack:
 	    --extra-source=modules \
 	    --extra-source=README.md \
 	    --extra-source=LICENSE \
-	    --schema=schemas/org.gnome.shell.extensions.mertnotch.gschema.xml \
+	    --schema=schemas/org.gnome.shell.extensions.nexnotch.gschema.xml \
 	    --force
 	@echo "Built $(UUID).shell-extension.zip"
 

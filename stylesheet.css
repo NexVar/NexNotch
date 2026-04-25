@@ -1,13 +1,13 @@
 /* ——— surface ——— */
-/* Note: .mertnotch-bg & .mertnotch-peek background / radius + accent colors
+/* Note: .nexnotch-bg & .nexnotch-peek background / radius + accent colors
    are overridden at runtime from gsettings (see notch.js _applyColors). */
 
-.mertnotch {
+.nexnotch {
     background-color: rgb(0, 0, 0);
     border-radius: 0 0 20px 20px;
 }
 
-.mertnotch-bg {
+.nexnotch-bg {
     background-color: rgb(0, 0, 0);
     border-radius: 0 0 20px 20px;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -17,40 +17,40 @@
 
 /* ——— collapsed pill ——— */
 
-.mertnotch-collapsed {
+.nexnotch-collapsed {
     padding: 0 14px;
     spacing: 0;
 }
 
-.mertnotch-cluster {
+.nexnotch-cluster {
     spacing: 7px;
 }
 
-.mertnotch-left {
+.nexnotch-left {
     min-width: 60px;
 }
 
-.mertnotch-right {
+.nexnotch-right {
     min-width: 60px;
     x-align: end;
 }
 
-.mertnotch-battery-icon,
-.mertnotch-media-icon {
+.nexnotch-battery-icon,
+.nexnotch-media-icon {
     padding: 0 1px;
 }
 
-.mertnotch-privacy-dot {
+.nexnotch-privacy-dot {
     width: 6px;
     height: 6px;
     border-radius: 999px;
     background-color: rgba(255, 90, 70, 0.95);
     box-shadow: 0 0 6px rgba(255, 90, 70, 0.65);
 }
-.mertnotch-privacy-dot.cam { background-color: rgba(255, 70, 70, 1); box-shadow: 0 0 6px rgba(255, 70, 70, 0.75); }
-.mertnotch-privacy-dot.mic { background-color: rgba(255, 170, 60, 0.95); box-shadow: 0 0 6px rgba(255, 170, 60, 0.65); }
+.nexnotch-privacy-dot.cam { background-color: rgba(255, 70, 70, 1); box-shadow: 0 0 6px rgba(255, 70, 70, 0.75); }
+.nexnotch-privacy-dot.mic { background-color: rgba(255, 170, 60, 0.95); box-shadow: 0 0 6px rgba(255, 170, 60, 0.65); }
 
-.mertnotch-pomo-mini {
+.nexnotch-pomo-mini {
     color: rgba(140, 220, 140, 0.95);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
@@ -58,68 +58,68 @@
     font-feature-settings: "tnum";
     padding: 0 4px;
 }
-.mertnotch-pomo-mini.break {
+.nexnotch-pomo-mini.break {
     color: rgba(255, 190, 80, 0.95);
 }
-.mertnotch-pomo-mini.idle {
+.nexnotch-pomo-mini.idle {
     color: rgba(255, 255, 255, 0.38);
 }
-.mertnotch-pomo-mini.paused { color: rgba(255, 200, 120, 0.75); }
+.nexnotch-pomo-mini.paused { color: rgba(255, 200, 120, 0.75); }
 
 /* music pill — collapsed extended state */
-.mertnotch-music-pill {
+.nexnotch-music-pill {
     spacing: 0;
     padding: 0 6px 0 4px;
     max-width: 280px;
 }
-.mertnotch-music-title {
+.nexnotch-music-title {
     color: rgba(255, 255, 255, 0.92);
     font-size: 11px; font-weight: 600;
 }
-.mertnotch-music-sep {
+.nexnotch-music-sep {
     color: rgba(255, 255, 255, 0.4);
     font-size: 11px;
 }
-.mertnotch-music-artist {
+.nexnotch-music-artist {
     color: rgba(255, 255, 255, 0.6);
     font-size: 11px; font-weight: 400;
 }
 
 /* system tab inline (compact) rows */
-.mertnotch-sys-body { spacing: 16px; padding-top: 4px; }
-.mertnotch-sys-left { spacing: 3px; }
-.mertnotch-sys-inline-row { spacing: 10px; padding: 2px 2px; }
-.mertnotch-sys-inline-label {
+.nexnotch-sys-body { spacing: 16px; padding-top: 4px; }
+.nexnotch-sys-left { spacing: 3px; }
+.nexnotch-sys-inline-row { spacing: 10px; padding: 2px 2px; }
+.nexnotch-sys-inline-label {
     color: rgba(255, 255, 255, 0.55);
     font-size: 11px; font-weight: 500;
     min-width: 62px;
 }
-.mertnotch-sys-inline-value {
+.nexnotch-sys-inline-value {
     color: rgba(255, 255, 255, 0.95);
     font-size: 11px; font-weight: 500;
     font-feature-settings: "tnum";
 }
 
 /* music card in system tab */
-.mertnotch-music-card {
+.nexnotch-music-card {
     spacing: 6px; padding: 8px 10px;
     border-radius: 10px;
     background-color: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
     min-width: 220px;
 }
-.mertnotch-music-card-top { spacing: 10px; }
-.mertnotch-music-art        { border-radius: 6px; }
-.mertnotch-music-art-fallback { color: rgba(255, 255, 255, 0.7); }
-.mertnotch-music-txt { spacing: 2px; }
-.mertnotch-music-card-title {
+.nexnotch-music-card-top { spacing: 10px; }
+.nexnotch-music-art        { border-radius: 6px; }
+.nexnotch-music-art-fallback { color: rgba(255, 255, 255, 0.7); }
+.nexnotch-music-txt { spacing: 2px; }
+.nexnotch-music-card-title {
     color: white; font-size: 12px; font-weight: 600;
 }
-.mertnotch-music-card-artist {
+.nexnotch-music-card-artist {
     color: rgba(255, 255, 255, 0.6); font-size: 10px;
 }
-.mertnotch-music-ctrls { spacing: 10px; padding-top: 4px; }
-.mertnotch-music-btn {
+.nexnotch-music-ctrls { spacing: 10px; padding-top: 4px; }
+.nexnotch-music-btn {
     color: rgba(255, 255, 255, 0.85);
     background-color: rgba(255, 255, 255, 0.06);
     border: 0;
@@ -127,17 +127,17 @@
     padding: 4px 10px;
     font-size: 13px;
 }
-.mertnotch-music-btn:hover { background-color: rgba(255, 255, 255, 0.15); color: white; }
-.mertnotch-music-btn.disabled { color: rgba(255, 255, 255, 0.25); }
+.nexnotch-music-btn:hover { background-color: rgba(255, 255, 255, 0.15); color: white; }
+.nexnotch-music-btn.disabled { color: rgba(255, 255, 255, 0.25); }
 
-.mertnotch-bg.drag-active {
+.nexnotch-bg.drag-active {
     border: 2px dashed rgba(120, 170, 255, 0.9);
     background-color: rgba(0, 0, 0, 0.96);
 }
 
 /* ——— notes ——— */
-.mertnotch-notes { spacing: 8px; }
-.mertnotch-notes-entry {
+.nexnotch-notes { spacing: 8px; }
+.nexnotch-notes-entry {
     background-color: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
@@ -147,134 +147,134 @@
     font-size: 12px;
     min-height: 140px;
 }
-.mertnotch-notes-footer { padding-top: 4px; spacing: 8px; }
-.mertnotch-notes-info   { color: rgba(255, 255, 255, 0.4); font-size: 10px; }
-.mertnotch-notes-clear  {
+.nexnotch-notes-footer { padding-top: 4px; spacing: 8px; }
+.nexnotch-notes-info   { color: rgba(255, 255, 255, 0.4); font-size: 10px; }
+.nexnotch-notes-clear  {
     color: rgba(255, 255, 255, 0.7); font-size: 10px; padding: 3px 10px;
     border-radius: 999px; background-color: rgba(255, 255, 255, 0.06); border: 0;
 }
-.mertnotch-notes-clear:hover { background-color: rgba(255, 120, 120, 0.2); color: white; }
+.nexnotch-notes-clear:hover { background-color: rgba(255, 120, 120, 0.2); color: white; }
 
 /* ——— weather ——— */
-.mertnotch-weather { spacing: 10px; }
-.mertnotch-weather-header { spacing: 14px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
-.mertnotch-weather-area {
+.nexnotch-weather { spacing: 10px; }
+.nexnotch-weather-header { spacing: 14px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.nexnotch-weather-area {
     color: white; font-family: "SF Pro Display", "Inter", sans-serif;
     font-size: 15px; font-weight: 600;
 }
-.mertnotch-weather-desc { color: rgba(255, 255, 255, 0.6); font-size: 11px; }
-.mertnotch-weather-temp {
+.nexnotch-weather-desc { color: rgba(255, 255, 255, 0.6); font-size: 11px; }
+.nexnotch-weather-temp {
     color: white; font-family: "SF Pro Display", "Inter", sans-serif;
     font-size: 32px; font-weight: 500; letter-spacing: -0.8px;
     font-feature-settings: "tnum";
 }
-.mertnotch-weather-meta { spacing: 10px; padding: 4px 0 6px 0; }
-.mertnotch-weather-meta-cell { spacing: 1px; x-align: center; }
-.mertnotch-weather-meta-label { color: rgba(255, 255, 255, 0.45); font-size: 9px; font-weight: 600; letter-spacing: 0.4px; }
-.mertnotch-weather-meta-value { color: rgba(255, 255, 255, 0.92); font-size: 12px; font-weight: 500; }
-.mertnotch-weather-forecast { spacing: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
-.mertnotch-weather-day { spacing: 2px; padding: 6px 4px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.04); }
-.mertnotch-weather-day-label { color: rgba(255, 255, 255, 0.72); font-size: 10px; font-weight: 700; letter-spacing: 0.3px; }
-.mertnotch-weather-day-temp  { color: white; font-size: 12px; font-weight: 500; font-feature-settings: "tnum"; }
-.mertnotch-weather-day-desc  { color: rgba(255, 255, 255, 0.5); font-size: 9px; }
+.nexnotch-weather-meta { spacing: 10px; padding: 4px 0 6px 0; }
+.nexnotch-weather-meta-cell { spacing: 1px; x-align: center; }
+.nexnotch-weather-meta-label { color: rgba(255, 255, 255, 0.45); font-size: 9px; font-weight: 600; letter-spacing: 0.4px; }
+.nexnotch-weather-meta-value { color: rgba(255, 255, 255, 0.92); font-size: 12px; font-weight: 500; }
+.nexnotch-weather-forecast { spacing: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.nexnotch-weather-day { spacing: 2px; padding: 6px 4px; border-radius: 8px; background-color: rgba(255, 255, 255, 0.04); }
+.nexnotch-weather-day-label { color: rgba(255, 255, 255, 0.72); font-size: 10px; font-weight: 700; letter-spacing: 0.3px; }
+.nexnotch-weather-day-temp  { color: white; font-size: 12px; font-weight: 500; font-feature-settings: "tnum"; }
+.nexnotch-weather-day-desc  { color: rgba(255, 255, 255, 0.5); font-size: 9px; }
 
 /* ——— pomodoro ——— */
-.mertnotch-pomo { spacing: 6px; padding: 8px 0; }
-.mertnotch-pomo-big {
+.nexnotch-pomo { spacing: 6px; padding: 8px 0; }
+.nexnotch-pomo-big {
     color: white; font-family: "SF Pro Display", "Inter", sans-serif;
     font-size: 42px; font-weight: 500; letter-spacing: -1px;
     font-feature-settings: "tnum";
 }
-.mertnotch-pomo-state { color: rgba(140, 220, 140, 0.85); font-size: 11px; font-weight: 600; letter-spacing: 0.4px; }
-.mertnotch-pomo-cycles { color: rgba(255, 255, 255, 0.4); font-size: 10px; font-weight: 500; }
-.mertnotch-pomo-btns { spacing: 8px; padding-top: 4px; }
-.mertnotch-pomo-btn {
+.nexnotch-pomo-state { color: rgba(140, 220, 140, 0.85); font-size: 11px; font-weight: 600; letter-spacing: 0.4px; }
+.nexnotch-pomo-cycles { color: rgba(255, 255, 255, 0.4); font-size: 10px; font-weight: 500; }
+.nexnotch-pomo-btns { spacing: 8px; padding-top: 4px; }
+.nexnotch-pomo-btn {
     color: rgba(255, 255, 255, 0.85); font-size: 11px; font-weight: 600;
     padding: 6px 18px; border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.08); border: 0;
 }
-.mertnotch-pomo-btn:hover { background-color: rgba(255, 255, 255, 0.16); color: white; }
-.mertnotch-pomo-btn.primary {
+.nexnotch-pomo-btn:hover { background-color: rgba(255, 255, 255, 0.16); color: white; }
+.nexnotch-pomo-btn.primary {
     background-color: rgba(140, 220, 140, 0.28); color: white;
 }
-.mertnotch-pomo-btn.primary:hover { background-color: rgba(140, 220, 140, 0.45); }
+.nexnotch-pomo-btn.primary:hover { background-color: rgba(140, 220, 140, 0.45); }
 
-.mertnotch-pomo-presets { spacing: 6px; padding-bottom: 4px; }
-.mertnotch-pomo-preset {
+.nexnotch-pomo-presets { spacing: 6px; padding-bottom: 4px; }
+.nexnotch-pomo-preset {
     color: rgba(255, 255, 255, 0.62); font-size: 10px; font-weight: 600;
     padding: 4px 10px; border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.05); border: 0;
 }
-.mertnotch-pomo-preset:hover  { background-color: rgba(255, 255, 255, 0.12); color: white; }
-.mertnotch-pomo-preset.active {
+.nexnotch-pomo-preset:hover  { background-color: rgba(255, 255, 255, 0.12); color: white; }
+.nexnotch-pomo-preset.active {
     background-color: rgba(140, 220, 140, 0.22);
     color: white;
 }
 
 /* weather location switcher */
-.mertnotch-weather-switcher { spacing: 4px; padding-bottom: 6px; }
-.mertnotch-weather-tab {
+.nexnotch-weather-switcher { spacing: 4px; padding-bottom: 6px; }
+.nexnotch-weather-tab {
     color: rgba(255, 255, 255, 0.6); font-size: 10px; font-weight: 700;
     padding: 3px 10px; border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.05); border: 0;
     letter-spacing: 0.3px;
 }
-.mertnotch-weather-tab:hover  { background-color: rgba(255, 255, 255, 0.12); color: white; }
-.mertnotch-weather-tab.active { background-color: rgba(120, 170, 255, 0.22); color: white; }
+.nexnotch-weather-tab:hover  { background-color: rgba(255, 255, 255, 0.12); color: white; }
+.nexnotch-weather-tab.active { background-color: rgba(120, 170, 255, 0.22); color: white; }
 
 /* task list segmented tabs */
-.mertnotch-task-lists {
+.nexnotch-task-lists {
     spacing: 2px; padding: 3px;
     background-color: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
     margin-bottom: 6px;
 }
-.mertnotch-task-list-tab {
+.nexnotch-task-list-tab {
     color: rgba(255, 255, 255, 0.55); font-size: 10px; font-weight: 600;
     padding: 4px 8px; border-radius: 6px;
     background-color: transparent; border: 0;
 }
-.mertnotch-task-list-tab:hover  { color: rgba(255, 255, 255, 0.85); }
-.mertnotch-task-list-tab.active {
+.nexnotch-task-list-tab:hover  { color: rgba(255, 255, 255, 0.85); }
+.nexnotch-task-list-tab.active {
     background-color: rgba(255, 255, 255, 0.12);
     color: white;
 }
 
 /* ——— quick hub ——— */
-.mertnotch-quick { spacing: 8px; }
-.mertnotch-quick-row { spacing: 8px; padding: 2px 0; }
-.mertnotch-quick-pill {
+.nexnotch-quick { spacing: 8px; }
+.nexnotch-quick-row { spacing: 8px; padding: 2px 0; }
+.nexnotch-quick-pill {
     spacing: 5px; padding: 4px 10px; border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.06);
 }
-.mertnotch-quick-pill.active {
+.nexnotch-quick-pill.active {
     background-color: rgba(255, 90, 70, 0.2);
     border: 1px solid rgba(255, 90, 70, 0.35);
 }
-.mertnotch-quick-pill-label { color: rgba(255, 255, 255, 0.5); font-size: 10px; font-weight: 600; letter-spacing: 0.4px; }
-.mertnotch-quick-pill-value { color: white; font-size: 11px; font-weight: 600; font-feature-settings: "tnum"; }
+.nexnotch-quick-pill-label { color: rgba(255, 255, 255, 0.5); font-size: 10px; font-weight: 600; letter-spacing: 0.4px; }
+.nexnotch-quick-pill-value { color: white; font-size: 11px; font-weight: 600; font-feature-settings: "tnum"; }
 
-.mertnotch-quick-section { color: rgba(255, 255, 255, 0.45); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding-top: 4px; }
-.mertnotch-quick-bt-row { padding: 2px 0; spacing: 8px; }
-.mertnotch-quick-bt-name { color: rgba(255, 255, 255, 0.9); font-size: 11px; }
-.mertnotch-quick-bt-pct  { color: rgba(140, 220, 140, 0.95); font-size: 10px; font-weight: 700; font-feature-settings: "tnum"; }
-.mertnotch-quick-bt-pct.low { color: rgba(255, 110, 90, 0.95); }
+.nexnotch-quick-section { color: rgba(255, 255, 255, 0.45); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding-top: 4px; }
+.nexnotch-quick-bt-row { padding: 2px 0; spacing: 8px; }
+.nexnotch-quick-bt-name { color: rgba(255, 255, 255, 0.9); font-size: 11px; }
+.nexnotch-quick-bt-pct  { color: rgba(140, 220, 140, 0.95); font-size: 10px; font-weight: 700; font-feature-settings: "tnum"; }
+.nexnotch-quick-bt-pct.low { color: rgba(255, 110, 90, 0.95); }
 
-.mertnotch-quick-actions { spacing: 6px; padding-top: 4px; }
-.mertnotch-quick-action {
+.nexnotch-quick-actions { spacing: 6px; padding-top: 4px; }
+.nexnotch-quick-action {
     color: rgba(255, 255, 255, 0.9); font-size: 10px; font-weight: 600;
     padding: 6px 10px; border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.06); border: 0;
     transition-duration: 160ms;
 }
-.mertnotch-quick-action:hover { background-color: rgba(255, 255, 255, 0.14); color: white; }
-.mertnotch-quick-action.armed {
+.nexnotch-quick-action:hover { background-color: rgba(255, 255, 255, 0.14); color: white; }
+.nexnotch-quick-action.armed {
     background-color: rgba(255, 100, 90, 0.35);
     color: white;
     font-weight: 700;
 }
 
-.mertnotch-clock {
+.nexnotch-clock {
     color: rgba(255, 255, 255, 0.96);
     font-family: "SF Pro Display", "Inter", "Cantarell", sans-serif;
     font-size: 13px;
@@ -283,23 +283,23 @@
     font-feature-settings: "tnum";
 }
 
-.mertnotch-date-mini {
+.nexnotch-date-mini {
     color: rgba(255, 255, 255, 0.55);
     font-family: "SF Pro Text", "Inter", "Cantarell", sans-serif;
     font-size: 11px;
     font-weight: 500;
 }
 
-.mertnotch-dot {
+.nexnotch-dot {
     background-color: rgba(255, 120, 90, 0.95);
     border-radius: 999px;
     width: 6px;
     height: 6px;
     box-shadow: 0 0 6px rgba(255, 120, 90, 0.7);
 }
-.mertnotch-dot.hot { background-color: rgba(255, 80, 60, 1); }
+.nexnotch-dot.hot { background-color: rgba(255, 80, 60, 1); }
 
-.mertnotch-shelf-badge {
+.nexnotch-shelf-badge {
     background-color: rgba(120, 170, 255, 0.3);
     color: rgba(255, 255, 255, 0.96);
     border-radius: 999px;
@@ -311,18 +311,18 @@
 
 /* ——— expanded panel ——— */
 
-.mertnotch-expanded {
+.nexnotch-expanded {
     padding: 14px 18px;
     spacing: 12px;
 }
 
-.mertnotch-header {
+.nexnotch-header {
     spacing: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.mertnotch-big-clock {
+.nexnotch-big-clock {
     color: white;
     font-family: "SF Pro Display", "Inter", "Cantarell", sans-serif;
     font-size: 28px;
@@ -331,7 +331,7 @@
     font-feature-settings: "tnum";
 }
 
-.mertnotch-date {
+.nexnotch-date {
     color: rgba(255, 255, 255, 0.55);
     font-family: "SF Pro Text", "Inter", "Cantarell", sans-serif;
     font-size: 12px;
@@ -341,14 +341,14 @@
 
 /* ——— tabs (iOS segmented control) ——— */
 
-.mertnotch-tabs {
+.nexnotch-tabs {
     spacing: 2px;
     padding: 3px;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
 }
 
-.mertnotch-tab {
+.nexnotch-tab {
     color: rgba(255, 255, 255, 0.58);
     background-color: transparent;
     border-radius: 6px;
@@ -359,101 +359,101 @@
     border: 0;
     transition-duration: 160ms;
 }
-.mertnotch-tab:focus {
+.nexnotch-tab:focus {
     border: 1px solid rgba(120, 170, 255, 0.7);
     padding: 3px 5px;
 }
-.mertnotch-tab:hover { color: rgba(255, 255, 255, 0.9); }
-.mertnotch-tab:active,
-.mertnotch-tab:active:hover {
+.nexnotch-tab:hover { color: rgba(255, 255, 255, 0.9); }
+.nexnotch-tab:active,
+.nexnotch-tab:active:hover {
     color: white;
     background-color: rgba(255, 255, 255, 0.14);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.mertnotch-content { padding: 4px 2px 2px 2px; }
+.nexnotch-content { padding: 4px 2px 2px 2px; }
 
 /* ——— system tab ——— */
 
-.mertnotch-sys       { spacing: 10px; }
-.mertnotch-sys-grid  { padding: 2px; }
+.nexnotch-sys       { spacing: 10px; }
+.nexnotch-sys-grid  { padding: 2px; }
 
-.mertnotch-sys-headline {
+.nexnotch-sys-headline {
     spacing: 14px;
     padding: 4px 2px 12px 2px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-.mertnotch-sys-headline-cell { spacing: 2px; }
-.mertnotch-sys-headline-label {
+.nexnotch-sys-headline-cell { spacing: 2px; }
+.nexnotch-sys-headline-label {
     color: rgba(255, 255, 255, 0.5);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
-.mertnotch-sys-headline-value {
+.nexnotch-sys-headline-value {
     color: white;
     font-size: 18px;
     font-weight: 500;
     font-feature-settings: "tnum";
     letter-spacing: -0.3px;
 }
-.mertnotch-sys-headline-value.warn   { color: rgba(255, 190, 80, 0.95); }
-.mertnotch-sys-headline-value.danger { color: rgba(255, 100, 90, 0.95); }
+.nexnotch-sys-headline-value.warn   { color: rgba(255, 190, 80, 0.95); }
+.nexnotch-sys-headline-value.danger { color: rgba(255, 100, 90, 0.95); }
 
 /* stats tab */
-.mertnotch-stats { spacing: 10px; }
-.mertnotch-stats-head { spacing: 14px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
-.mertnotch-stats-cell { spacing: 2px; }
-.mertnotch-stats-value {
+.nexnotch-stats { spacing: 10px; }
+.nexnotch-stats-head { spacing: 14px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.nexnotch-stats-cell { spacing: 2px; }
+.nexnotch-stats-value {
     color: white; font-size: 20px; font-weight: 600;
     font-feature-settings: "tnum"; letter-spacing: -0.3px;
 }
-.mertnotch-stats-label {
+.nexnotch-stats-label {
     color: rgba(255, 255, 255, 0.5);
     font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
 }
-.mertnotch-stats-chart-title {
+.nexnotch-stats-chart-title {
     color: rgba(255, 255, 255, 0.55);
     font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
     padding-top: 4px;
 }
-.mertnotch-stats-chart {
+.nexnotch-stats-chart {
     spacing: 6px;
     padding: 4px 0 0 0;
     min-height: 108px;
 }
-.mertnotch-stats-col { spacing: 3px; y-align: end; }
-.mertnotch-stats-bar {
+.nexnotch-stats-col { spacing: 3px; y-align: end; }
+.nexnotch-stats-bar {
     background-color: rgba(120, 170, 255, 0.65);
     border-radius: 3px 3px 0 0;
     min-width: 16px;
 }
-.mertnotch-stats-bar.today {
+.nexnotch-stats-bar.today {
     background-color: rgba(140, 220, 140, 0.85);
 }
-.mertnotch-stats-bar-value {
+.nexnotch-stats-bar-value {
     color: rgba(255, 255, 255, 0.7);
     font-size: 9px; font-weight: 600;
     font-feature-settings: "tnum";
 }
-.mertnotch-stats-bar-label {
+.nexnotch-stats-bar-label {
     color: rgba(255, 255, 255, 0.55);
     font-size: 9px; font-weight: 600; letter-spacing: 0.3px;
 }
-.mertnotch-stats-totals {
+.nexnotch-stats-totals {
     color: rgba(255, 255, 255, 0.55);
     font-size: 10px; font-weight: 500;
     padding-top: 4px;
 }
 
-.mertnotch-sys-label {
+.nexnotch-sys-label {
     color: rgba(255, 255, 255, 0.52);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
     font-weight: 500;
     min-width: 78px;
 }
-.mertnotch-sys-value {
+.nexnotch-sys-value {
     color: rgba(255, 255, 255, 0.96);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
@@ -461,33 +461,33 @@
     font-feature-settings: "tnum";
 }
 
-.mertnotch-bar {
+.nexnotch-bar {
     background-color: rgba(255, 255, 255, 0.07);
     border-radius: 999px;
     margin: 2px 4px 4px 4px;
     height: 3px;
 }
-.mertnotch-bar-fill {
+.nexnotch-bar-fill {
     background-color: rgba(120, 170, 255, 0.88);
     border-radius: 999px;
     height: 3px;
     transition-duration: 280ms;
 }
-.mertnotch-bar-fill.warn   { background-color: rgba(255, 190, 80, 0.9); }
-.mertnotch-bar-fill.danger { background-color: rgba(255, 100, 80, 0.92); }
+.nexnotch-bar-fill.warn   { background-color: rgba(255, 190, 80, 0.9); }
+.nexnotch-bar-fill.danger { background-color: rgba(255, 100, 80, 0.92); }
 
 /* ——— calendar / tasks ——— */
 
-.mertnotch-cal-row, .mertnotch-task-row {
+.nexnotch-cal-row, .nexnotch-task-row {
     padding: 4px 2px;
     spacing: 10px;
     border-radius: 6px;
 }
-.mertnotch-cal-row:hover, .mertnotch-task-row:hover {
+.nexnotch-cal-row:hover, .nexnotch-task-row:hover {
     background-color: rgba(255, 255, 255, 0.04);
 }
 
-.mertnotch-cal-when {
+.nexnotch-cal-when {
     color: rgba(120, 170, 255, 0.88);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 10px;
@@ -495,25 +495,25 @@
     min-width: 88px;
     letter-spacing: 0.3px;
 }
-.mertnotch-cal-title {
+.nexnotch-cal-title {
     color: rgba(255, 255, 255, 0.94);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
     font-weight: 500;
 }
 
-.mertnotch-task-check {
+.nexnotch-task-check {
     color: rgba(140, 220, 140, 0.9);
     min-width: 18px;
     font-size: 13px;
 }
-.mertnotch-task-due {
+.nexnotch-task-due {
     color: rgba(255, 200, 120, 0.8);
     font-size: 10px;
     font-weight: 600;
 }
 
-.mertnotch-empty {
+.nexnotch-empty {
     color: rgba(255, 255, 255, 0.42);
     font-size: 11px;
     font-weight: 500;
@@ -522,33 +522,33 @@
 
 /* ——— drop shelf ——— */
 
-.mertnotch-shelf-header {
+.nexnotch-shelf-header {
     padding: 2px 2px 10px 2px;
     spacing: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
-.mertnotch-shelf-dest {
+.nexnotch-shelf-dest {
     color: rgba(120, 170, 255, 0.92);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.4px;
 }
-.mertnotch-shelf-empty-title {
+.nexnotch-shelf-empty-title {
     color: rgba(255, 255, 255, 0.72);
     font-size: 12px;
     font-weight: 600;
     padding: 20px 10px 6px 10px;
 }
-.mertnotch-shelf-empty-body {
+.nexnotch-shelf-empty-body {
     color: rgba(255, 255, 255, 0.42);
     font-size: 10px;
     font-weight: 500;
     padding: 0 10px 20px 10px;
 }
 
-.mertnotch-shelf-add,
-.mertnotch-shelf-open {
+.nexnotch-shelf-add,
+.nexnotch-shelf-open {
     color: rgba(255, 255, 255, 0.72);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 10px;
@@ -559,49 +559,49 @@
     border: 0;
     transition-duration: 160ms;
 }
-.mertnotch-shelf-add:hover,
-.mertnotch-shelf-open:hover {
+.nexnotch-shelf-add:hover,
+.nexnotch-shelf-open:hover {
     color: white;
     background-color: rgba(255, 255, 255, 0.16);
 }
 
-.mertnotch-shelf-row {
+.nexnotch-shelf-row {
     padding: 6px 6px;
     spacing: 10px;
     border-radius: 8px;
     transition-duration: 120ms;
 }
-.mertnotch-shelf-row:hover {
+.nexnotch-shelf-row:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.mertnotch-shelf-name {
+.nexnotch-shelf-name {
     color: rgba(255, 255, 255, 0.94);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
     font-weight: 500;
 }
-.mertnotch-shelf-name.uploading { color: rgba(255, 190, 80, 0.96); }
-.mertnotch-shelf-name.uploaded  { color: rgba(140, 220, 140, 0.96); }
-.mertnotch-shelf-name.error     { color: rgba(255, 110, 90, 0.96); }
+.nexnotch-shelf-name.uploading { color: rgba(255, 190, 80, 0.96); }
+.nexnotch-shelf-name.uploaded  { color: rgba(140, 220, 140, 0.96); }
+.nexnotch-shelf-name.error     { color: rgba(255, 110, 90, 0.96); }
 
-.mertnotch-shelf-state { color: rgba(255, 255, 255, 0.5); font-size: 10px; }
-.mertnotch-shelf-size  { color: rgba(255, 255, 255, 0.42); font-size: 10px; font-feature-settings: "tnum"; }
+.nexnotch-shelf-state { color: rgba(255, 255, 255, 0.5); font-size: 10px; }
+.nexnotch-shelf-size  { color: rgba(255, 255, 255, 0.42); font-size: 10px; font-feature-settings: "tnum"; }
 
-.mertnotch-shelf-retry,
-.mertnotch-shelf-rm {
+.nexnotch-shelf-retry,
+.nexnotch-shelf-rm {
     color: rgba(255, 255, 255, 0.55);
     font-size: 14px;
     padding: 0 6px;
     border: 0;
     background-color: transparent;
 }
-.mertnotch-shelf-rm:hover    { color: rgba(255, 120, 120, 1); }
-.mertnotch-shelf-retry:hover { color: rgba(120, 170, 255, 1); }
+.nexnotch-shelf-rm:hover    { color: rgba(255, 120, 120, 1); }
+.nexnotch-shelf-retry:hover { color: rgba(120, 170, 255, 1); }
 
 /* ——— peek (dynamic notification) ——— */
 
-.mertnotch-peek {
+.nexnotch-peek {
     padding: 10px 12px 10px 14px;
     spacing: 12px;
     background-color: rgb(0, 0, 0);
@@ -609,19 +609,19 @@
     box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.55);
 }
 
-.mertnotch-peek-icon-bin {
+.nexnotch-peek-icon-bin {
     min-width: 32px;
     min-height: 32px;
     padding: 2px 2px 2px 4px;
 }
-.mertnotch-peek-icon {
+.nexnotch-peek-icon {
     color: rgba(255, 255, 255, 0.92);
     icon-size: 28px;
 }
 
-.mertnotch-peek-text { spacing: 2px; }
+.nexnotch-peek-text { spacing: 2px; }
 
-.mertnotch-peek-title {
+.nexnotch-peek-title {
     color: white;
     font-family: "SF Pro Display", "Inter", sans-serif;
     font-size: 13px;
@@ -629,7 +629,7 @@
     letter-spacing: 0.1px;
 }
 
-.mertnotch-peek-time {
+.nexnotch-peek-time {
     color: rgba(255, 255, 255, 0.5);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 10px;
@@ -638,14 +638,14 @@
     padding-left: 6px;
 }
 
-.mertnotch-peek-body {
+.nexnotch-peek-body {
     color: rgba(255, 255, 255, 0.78);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 11px;
     font-weight: 400;
 }
 
-.mertnotch-peek-dismiss {
+.nexnotch-peek-dismiss {
     color: rgba(255, 255, 255, 0.55);
     background-color: transparent;
     border: 0;
@@ -653,7 +653,7 @@
     border-radius: 999px;
     font-size: 12px;
 }
-.mertnotch-peek-dismiss:hover {
+.nexnotch-peek-dismiss:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: white;
 }

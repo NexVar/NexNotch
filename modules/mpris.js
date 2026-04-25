@@ -76,7 +76,7 @@ export const MprisWatcher = GObject.registerClass({
                 if (newOwner && !oldOwner) this._addPlayer(name);
                 if (oldOwner && !newOwner) this._removePlayer(name);
             });
-        this._listExistingPlayers().catch(e => logError(e, 'mertnotch:mpris'));
+        this._listExistingPlayers().catch(e => logError(e, 'nexnotch:mpris'));
     }
 
     stop() {
@@ -125,7 +125,7 @@ export const MprisWatcher = GObject.registerClass({
             });
             this._players.set(busName, proxy);
             this._recompute();
-        } catch (e) { logError(e, 'mertnotch:mpris:add'); }
+        } catch (e) { logError(e, 'nexnotch:mpris:add'); }
     }
 
     _removePlayer(busName) {
@@ -184,6 +184,6 @@ export const MprisWatcher = GObject.registerClass({
 
     _callActive(method) {
         if (!this._active?.proxy) return;
-        try { this._active.proxy[method](() => {}); } catch (e) { logError(e, 'mertnotch:mpris:call'); }
+        try { this._active.proxy[method](() => {}); } catch (e) { logError(e, 'nexnotch:mpris:call'); }
     }
 });

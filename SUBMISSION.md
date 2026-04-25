@@ -2,7 +2,7 @@
 
 ## Package
 ```sh
-make pack      # produces mertnotch@mertdlkr.shell-extension.zip
+make pack      # produces nexnotch@nexvar.shell-extension.zip
 ```
 Verify the zip contains: metadata.json, extension.js, notch.js, prefs.js,
 stylesheet.css, LICENSE, README.md, modules/*.js, schemas/*.gschema.xml.
@@ -10,15 +10,16 @@ stylesheet.css, LICENSE, README.md, modules/*.js, schemas/*.gschema.xml.
 ## Upload form
 
 ### Name
-MertNotch
+NexNotch — Dynamic Island for GNOME
 
 ### Tagline (short)
-MacBook-style hover notch with system, calendar, weather, pomodoro, and more
+Dynamic Island for Linux. MacBook-notch-style hover hub: system stats, Calendar, Tasks, Weather, Pomodoro, Notes, Shelf, Quick actions.
 
 ### Description (long — paste into e.g.o form)
 
-MertNotch replaces the GNOME top-bar clock with a compact, MacBook-notch-shaped
-pill that expands on hover into a tabbed hub.
+NexNotch brings the iPhone Dynamic Island vibe to your GNOME desktop. A
+MacBook-notch-shaped pill replaces the top-bar clock and expands on hover
+into a tabbed productivity hub — built by NexVar (https://nexvar.io).
 
 **Tabs**
 
@@ -44,7 +45,7 @@ pill that expands on hover into a tabbed hub.
 
 **Notifications**
 
-MertNotch intercepts new notifications, shows a slim peek inside the notch
+NexNotch intercepts new notifications, shows a slim peek inside the notch
 with the app's icon, title, body and time, and can force-dismiss the
 native banner if Fedora's notification system (or any DE) has left it
 hanging. The peek is fully clickable — a left-click activates the

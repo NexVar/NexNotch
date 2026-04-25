@@ -7,7 +7,7 @@ import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
-const LOG_DIR  = GLib.build_filenamev([GLib.get_user_data_dir(), 'mertnotch']);
+const LOG_DIR  = GLib.build_filenamev([GLib.get_user_data_dir(), 'nexnotch']);
 const LOG_FILE = GLib.build_filenamev([LOG_DIR, 'pomodoro.jsonl']);
 
 function _appendSession(entry) {
@@ -18,7 +18,7 @@ function _appendSession(entry) {
         const stream = file.append_to(Gio.FileCreateFlags.NONE, null);
         stream.write_all(line, null);
         stream.close(null);
-    } catch (e) { logError(e, 'mertnotch:pomodoro:log'); }
+    } catch (e) { logError(e, 'nexnotch:pomodoro:log'); }
 }
 
 export function readSessions() {
@@ -180,7 +180,7 @@ export const Pomodoro = GObject.registerClass({
                 if (!ns) return;
                 Gio.Subprocess.new([ns, '-u', 'normal', title, body],
                     Gio.SubprocessFlags.STDERR_SILENCE);
-            } catch (e) { logError(e, 'mertnotch:pomodoro:notify'); }
+            } catch (e) { logError(e, 'nexnotch:pomodoro:notify'); }
         }
     }
 
@@ -195,15 +195,15 @@ export const Pomodoro = GObject.registerClass({
     }
 
     render() {
-        const box = new St.BoxLayout({style_class: 'mertnotch-pomo', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-pomo', vertical: true, x_expand: true, y_expand: true});
 
         /* preset selector */
         const presets = this._settings.get_strv('pomodoro-presets');
         const activePreset = this._settings.get_string('pomodoro-active-preset');
-        const presetRow = new St.BoxLayout({style_class: 'mertnotch-pomo-presets', x_align: Clutter.ActorAlign.CENTER});
+        const presetRow = new St.BoxLayout({style_class: 'nexnotch-pomo-presets', x_align: Clutter.ActorAlign.CENTER});
         for (const p of presets) {
             const btn = new St.Button({
-                style_class: 'mertnotch-pomo-preset' + (p === activePreset ? ' active' : ''),
+                style_class: 'nexnotch-pomo-preset' + (p === activePreset ? ' active' : ''),
                 label: p,
             });
             btn.connect('clicked', () => {
@@ -217,14 +217,14 @@ export const Pomodoro = GObject.registerClass({
 
         const big = new St.Label({
             text: this._state === 'idle' ? '—:—' : this.formatRemain(),
-            style_class: 'mertnotch-pomo-big',
+            style_class: 'nexnotch-pomo-big',
             x_align: Clutter.ActorAlign.CENTER,
         });
         box.add_child(big);
 
         const stateLabel = new St.Label({
             text: this._stateLabel(),
-            style_class: 'mertnotch-pomo-state',
+            style_class: 'nexnotch-pomo-state',
             x_align: Clutter.ActorAlign.CENTER,
         });
         box.add_child(stateLabel);
@@ -232,14 +232,14 @@ export const Pomodoro = GObject.registerClass({
         const {work, brk} = this._activePreset();
         const cyclesLabel = new St.Label({
             text: `Cycle ${this._cycle} · ${work}/${brk}min`,
-            style_class: 'mertnotch-pomo-cycles',
+            style_class: 'nexnotch-pomo-cycles',
             x_align: Clutter.ActorAlign.CENTER,
         });
         box.add_child(cyclesLabel);
 
-        const btns = new St.BoxLayout({style_class: 'mertnotch-pomo-btns', x_align: Clutter.ActorAlign.CENTER});
+        const btns = new St.BoxLayout({style_class: 'nexnotch-pomo-btns', x_align: Clutter.ActorAlign.CENTER});
         const startBtn = new St.Button({
-            style_class: 'mertnotch-pomo-btn primary',
+            style_class: 'nexnotch-pomo-btn primary',
             label: this._state === 'idle' ? 'Start' : (this._state === 'paused' ? 'Resume' : 'Pause'),
         });
         startBtn.connect('clicked', () => {
@@ -247,7 +247,7 @@ export const Pomodoro = GObject.registerClass({
             else if (this._state === 'paused') this.resume();
             else this.pause();
         });
-        const resetBtn = new St.Button({style_class: 'mertnotch-pomo-btn', label: 'Reset'});
+        const resetBtn = new St.Button({style_class: 'nexnotch-pomo-btn', label: 'Reset'});
         resetBtn.connect('clicked', () => this.reset());
         btns.add_child(startBtn);
         btns.add_child(resetBtn);

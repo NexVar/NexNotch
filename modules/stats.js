@@ -77,14 +77,14 @@ class Stats extends GObject.Object {
         const sessions = this._getSessions();
         const s = this._computeSummary(sessions);
 
-        const box = new St.BoxLayout({style_class: 'mertnotch-stats', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-stats', vertical: true, x_expand: true, y_expand: true});
 
         /* headline row */
-        const head = new St.BoxLayout({style_class: 'mertnotch-stats-head'});
+        const head = new St.BoxLayout({style_class: 'nexnotch-stats-head'});
         const cell = (label, value) => {
-            const c = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'mertnotch-stats-cell'});
-            c.add_child(new St.Label({text: value, style_class: 'mertnotch-stats-value'}));
-            c.add_child(new St.Label({text: label, style_class: 'mertnotch-stats-label'}));
+            const c = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-stats-cell'});
+            c.add_child(new St.Label({text: value, style_class: 'nexnotch-stats-value'}));
+            c.add_child(new St.Label({text: label, style_class: 'nexnotch-stats-label'}));
             return c;
         };
         head.add_child(cell('Today',   `${s.todayCount}`));
@@ -94,27 +94,27 @@ class Stats extends GObject.Object {
         box.add_child(head);
 
         /* weekly bar chart */
-        const chartTitle = new St.Label({text: 'Last 7 days (minutes focused)', style_class: 'mertnotch-stats-chart-title'});
+        const chartTitle = new St.Label({text: 'Last 7 days (minutes focused)', style_class: 'nexnotch-stats-chart-title'});
         box.add_child(chartTitle);
-        const chart = new St.BoxLayout({style_class: 'mertnotch-stats-chart', vertical: false});
+        const chart = new St.BoxLayout({style_class: 'nexnotch-stats-chart', vertical: false});
         const max = Math.max(1, ...s.week);
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const now = new Date();
         const todayIdx = (now.getDay() + 6) % 7;
         for (let i = 0; i < 7; i++) {
-            const col = new St.BoxLayout({style_class: 'mertnotch-stats-col', vertical: true, x_expand: true});
-            const spacer = new St.Widget({style_class: 'mertnotch-stats-spacer', y_expand: true});
+            const col = new St.BoxLayout({style_class: 'nexnotch-stats-col', vertical: true, x_expand: true});
+            const spacer = new St.Widget({style_class: 'nexnotch-stats-spacer', y_expand: true});
             const barHeight = Math.max(2, Math.round((s.week[i] / max) * 80));
             const bar = new St.Widget({
-                style_class: 'mertnotch-stats-bar' + (i === 6 ? ' today' : ''),
+                style_class: 'nexnotch-stats-bar' + (i === 6 ? ' today' : ''),
                 height: barHeight,
             });
             const valueLabel = new St.Label({
                 text: s.week[i] > 0 ? `${s.week[i]}` : '',
-                style_class: 'mertnotch-stats-bar-value',
+                style_class: 'nexnotch-stats-bar-value',
             });
             const dayIdx = (todayIdx - (6 - i) + 7) % 7;
-            const dayLabel = new St.Label({text: days[dayIdx], style_class: 'mertnotch-stats-bar-label'});
+            const dayLabel = new St.Label({text: days[dayIdx], style_class: 'nexnotch-stats-bar-label'});
             col.add_child(spacer);
             col.add_child(valueLabel);
             col.add_child(bar);
@@ -125,7 +125,7 @@ class Stats extends GObject.Object {
 
         const totals = new St.Label({
             text: `All time: ${s.totalCount} sessions · ${Math.round(s.totalMin / 60)}h ${s.totalMin % 60}m`,
-            style_class: 'mertnotch-stats-totals',
+            style_class: 'nexnotch-stats-totals',
         });
         box.add_child(totals);
 

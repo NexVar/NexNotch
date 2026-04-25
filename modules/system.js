@@ -86,7 +86,7 @@ export const SystemMonitor = GObject.registerClass({
             this._stats.uptime    = this._uptime();
             this._stats.battery   = this._battery();
             this.emit('updated', this._stats);
-        } catch (e) { logError(e, 'mertnotch:system'); }
+        } catch (e) { logError(e, 'nexnotch:system'); }
     }
 
     _readFile(path) {
@@ -284,14 +284,14 @@ export const SystemMonitor = GObject.registerClass({
 
     render(musicCard) {
         const s = this._stats;
-        const box = new St.BoxLayout({style_class: 'mertnotch-sys', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-sys', vertical: true, x_expand: true, y_expand: true});
 
         /* headline: CPU · RAM · Uptime · Battery */
-        const headline = new St.BoxLayout({style_class: 'mertnotch-sys-headline', vertical: false, x_expand: true});
+        const headline = new St.BoxLayout({style_class: 'nexnotch-sys-headline', vertical: false, x_expand: true});
         const hcell = (label, value, cls) => {
-            const c = new St.BoxLayout({style_class: 'mertnotch-sys-headline-cell', vertical: true, x_expand: true});
-            c.add_child(new St.Label({text: label, style_class: 'mertnotch-sys-headline-label'}));
-            const val = new St.Label({text: value, style_class: 'mertnotch-sys-headline-value'});
+            const c = new St.BoxLayout({style_class: 'nexnotch-sys-headline-cell', vertical: true, x_expand: true});
+            c.add_child(new St.Label({text: label, style_class: 'nexnotch-sys-headline-label'}));
+            const val = new St.Label({text: value, style_class: 'nexnotch-sys-headline-value'});
             if (cls) val.add_style_class_name(cls);
             c.add_child(val);
             return c;
@@ -312,8 +312,8 @@ export const SystemMonitor = GObject.registerClass({
         /* body: compact 2-col stat grid on the left, optional music card
            slotted into the right column. Each stat is "Label value" on one
            line — frees up screen space per user feedback. */
-        const body = new St.BoxLayout({style_class: 'mertnotch-sys-body', vertical: false, x_expand: true, y_expand: true});
-        const leftCol = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'mertnotch-sys-left'});
+        const body = new St.BoxLayout({style_class: 'nexnotch-sys-body', vertical: false, x_expand: true, y_expand: true});
+        const leftCol = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-sys-left'});
         const stats = [];
         if (s.swap > 0)   stats.push(['Swap',  `${s.swap.toFixed(0)}%`]);
         stats.push(['Net ↓',  this._kbFmt(s.net_rx)]);
@@ -323,9 +323,9 @@ export const SystemMonitor = GObject.registerClass({
         if (s.temp > 0)   stats.push(['Temp',  `${s.temp.toFixed(0)}°C`]);
         stats.push(['Load', s.load.map(x => x.toFixed(2)).join(' ')]);
         for (const [label, value] of stats) {
-            const row = new St.BoxLayout({style_class: 'mertnotch-sys-inline-row', vertical: false, x_expand: true});
-            row.add_child(new St.Label({text: label, style_class: 'mertnotch-sys-inline-label'}));
-            row.add_child(new St.Label({text: value, style_class: 'mertnotch-sys-inline-value', x_expand: true, x_align: Clutter.ActorAlign.END}));
+            const row = new St.BoxLayout({style_class: 'nexnotch-sys-inline-row', vertical: false, x_expand: true});
+            row.add_child(new St.Label({text: label, style_class: 'nexnotch-sys-inline-label'}));
+            row.add_child(new St.Label({text: value, style_class: 'nexnotch-sys-inline-value', x_expand: true, x_align: Clutter.ActorAlign.END}));
             leftCol.add_child(row);
         }
         body.add_child(leftCol);

@@ -45,9 +45,9 @@ class Notes extends GObject.Object {
     }
 
     render() {
-        const box = new St.BoxLayout({style_class: 'mertnotch-notes', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-notes', vertical: true, x_expand: true, y_expand: true});
         const entry = new St.Entry({
-            style_class: 'mertnotch-notes-entry',
+            style_class: 'nexnotch-notes-entry',
             hint_text: 'Click here and type. Saves automatically.',
             x_expand: true,
             y_expand: true,
@@ -99,11 +99,11 @@ class Notes extends GObject.Object {
         });
         box.add_child(entry);
 
-        const footer = new St.BoxLayout({style_class: 'mertnotch-notes-footer'});
-        const info = new St.Label({text: 'Saved automatically', style_class: 'mertnotch-notes-info', x_expand: true});
+        const footer = new St.BoxLayout({style_class: 'nexnotch-notes-footer'});
+        const info = new St.Label({text: 'Saved automatically', style_class: 'nexnotch-notes-info', x_expand: true});
         footer.add_child(info);
         const clear = new St.Button({
-            style_class: 'mertnotch-notes-clear',
+            style_class: 'nexnotch-notes-clear',
             label: 'Clear',
             accessible_name: 'Clear all notes',
             can_focus: true,

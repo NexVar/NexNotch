@@ -62,7 +62,7 @@ export const QuickHub = GObject.registerClass({
             this._btDevices = await this._btBatteries();
             this._kbLayout  = this._currentLayout();
             this.emit('updated');
-        } catch (e) { logError(e, 'mertnotch:quick:refresh'); }
+        } catch (e) { logError(e, 'nexnotch:quick:refresh'); }
     }
 
     async _anyAppUsing(_role) {
@@ -157,31 +157,31 @@ export const QuickHub = GObject.registerClass({
     }
 
     render() {
-        const box = new St.BoxLayout({style_class: 'mertnotch-quick', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-quick', vertical: true, x_expand: true, y_expand: true});
 
-        const privacyRow = new St.BoxLayout({style_class: 'mertnotch-quick-row'});
+        const privacyRow = new St.BoxLayout({style_class: 'nexnotch-quick-row'});
         privacyRow.add_child(this._pill('Mic',    this._mic  ? 'on'  : 'off', this._mic));
         privacyRow.add_child(this._pill('Camera', this._cam  ? 'on'  : 'off', this._cam));
         privacyRow.add_child(this._pill('Layout', this._kbLayout || '—', false));
         box.add_child(privacyRow);
 
         if (this._btDevices.length > 0) {
-            box.add_child(new St.Label({text: 'Bluetooth', style_class: 'mertnotch-quick-section'}));
+            box.add_child(new St.Label({text: 'Bluetooth', style_class: 'nexnotch-quick-section'}));
             for (const d of this._btDevices) {
-                const r = new St.BoxLayout({style_class: 'mertnotch-quick-bt-row'});
-                r.add_child(new St.Label({text: d.model, style_class: 'mertnotch-quick-bt-name', x_expand: true}));
-                const pctLbl = new St.Label({text: `${d.pct}%`, style_class: 'mertnotch-quick-bt-pct'});
+                const r = new St.BoxLayout({style_class: 'nexnotch-quick-bt-row'});
+                r.add_child(new St.Label({text: d.model, style_class: 'nexnotch-quick-bt-name', x_expand: true}));
+                const pctLbl = new St.Label({text: `${d.pct}%`, style_class: 'nexnotch-quick-bt-pct'});
                 if (d.pct < 20) pctLbl.add_style_class_name('low');
                 r.add_child(pctLbl);
                 box.add_child(r);
             }
         }
 
-        box.add_child(new St.Label({text: 'Focus', style_class: 'mertnotch-quick-section'}));
-        const focusRow = new St.BoxLayout({style_class: 'mertnotch-quick-actions'});
+        box.add_child(new St.Label({text: 'Focus', style_class: 'nexnotch-quick-section'}));
+        const focusRow = new St.BoxLayout({style_class: 'nexnotch-quick-actions'});
         const dndOn = this._dndSettings ? !this._dndSettings.get_boolean('show-banners') : false;
         const dndBtn = new St.Button({
-            style_class: 'mertnotch-quick-action' + (dndOn ? ' active' : ''),
+            style_class: 'nexnotch-quick-action' + (dndOn ? ' active' : ''),
             label: dndOn ? 'DND: On' : 'DND: Off',
         });
         dndBtn.connect('clicked', () => {
@@ -195,8 +195,8 @@ export const QuickHub = GObject.registerClass({
         focusRow.add_child(dndBtn);
         box.add_child(focusRow);
 
-        box.add_child(new St.Label({text: 'System', style_class: 'mertnotch-quick-section'}));
-        const actions = new St.BoxLayout({style_class: 'mertnotch-quick-actions'});
+        box.add_child(new St.Label({text: 'System', style_class: 'nexnotch-quick-section'}));
+        const actions = new St.BoxLayout({style_class: 'nexnotch-quick-actions'});
         /* Lock and Suspend are safe one-click; Log out / Reboot / Shutdown
            require a second confirmation click within 3 s ("Really?" arm
            state) so accidental taps in a tiny hover panel don't kill work. */
@@ -211,21 +211,21 @@ export const QuickHub = GObject.registerClass({
     }
 
     _pill(label, value, active) {
-        const p = new St.BoxLayout({style_class: 'mertnotch-quick-pill' + (active ? ' active' : '')});
-        p.add_child(new St.Label({text: label, style_class: 'mertnotch-quick-pill-label'}));
-        p.add_child(new St.Label({text: value, style_class: 'mertnotch-quick-pill-value'}));
+        const p = new St.BoxLayout({style_class: 'nexnotch-quick-pill' + (active ? ' active' : '')});
+        p.add_child(new St.Label({text: label, style_class: 'nexnotch-quick-pill-label'}));
+        p.add_child(new St.Label({text: value, style_class: 'nexnotch-quick-pill-value'}));
         return p;
     }
 
     _actionButton(label, cb) {
-        const b = new St.Button({style_class: 'mertnotch-quick-action', label, accessible_name: label, can_focus: true});
+        const b = new St.Button({style_class: 'nexnotch-quick-action', label, accessible_name: label, can_focus: true});
         b.connect('clicked', cb);
         return b;
     }
 
     _armedActionButton(label, argv) {
         const b = new St.Button({
-            style_class: 'mertnotch-quick-action',
+            style_class: 'nexnotch-quick-action',
             label,
             accessible_name: `${label} (click twice to confirm)`,
             can_focus: true,
@@ -265,11 +265,11 @@ export const QuickHub = GObject.registerClass({
 
     _run(argv) {
         if (!GLib.find_program_in_path(argv[0])) {
-            logError(new Error(`${argv[0]} not in PATH`), 'mertnotch:quick:run');
+            logError(new Error(`${argv[0]} not in PATH`), 'nexnotch:quick:run');
             return;
         }
         try {
             Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDERR_SILENCE);
-        } catch (e) { logError(e, 'mertnotch:quick:run'); }
+        } catch (e) { logError(e, 'nexnotch:quick:run'); }
     }
 });

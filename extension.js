@@ -10,7 +10,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {Notch} from './notch.js';
 
-export default class MertNotchExtension extends Extension {
+export default class NexNotchExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
 

@@ -8,7 +8,7 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 
 import {listGoogleAccounts} from './modules/goa.js';
 
-export default class MertNotchPrefs extends ExtensionPreferences {
+export default class NexNotchPrefs extends ExtensionPreferences {
     async fillPreferencesWindow(window) {
         const settings = this.getSettings();
         window.set_default_size(720, 720);
@@ -236,7 +236,7 @@ export default class MertNotchPrefs extends ExtensionPreferences {
             accounts = await listGoogleAccounts();
         } catch (e) {
             loadErr = e;
-            console.error('mertnotch prefs: listGoogleAccounts failed', e?.message ?? e);
+            console.error('nexnotch prefs: listGoogleAccounts failed', e?.message ?? e);
         }
         const enabled = settings.get_strv('calendar-enabled-sources');
 
@@ -412,7 +412,7 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         try {
             accounts = await listGoogleAccounts();
         } catch (e) {
-            console.error('mertnotch prefs: listGoogleAccounts failed', e);
+            console.error('nexnotch prefs: listGoogleAccounts failed', e);
         }
         const acctEmails = accounts.map(a => a.email);
         if (acctEmails.length === 0) acctModel.append('(no Google accounts in GOA)');
@@ -438,7 +438,7 @@ export default class MertNotchPrefs extends ExtensionPreferences {
         const page = new Adw.PreferencesPage({title: 'Notifications', icon_name: 'preferences-system-notifications-symbolic'});
         const group = new Adw.PreferencesGroup({
             title: 'Notifications',
-            description: 'MertNotch shows a dynamic peek inside the notch AND force-closes non-critical banners. Fixes the Fedora-45+ bug where banners never auto-dismiss.',
+            description: 'NexNotch shows a dynamic peek inside the notch AND force-closes non-critical banners. Fixes the Fedora-45+ bug where banners never auto-dismiss.',
         });
         group.add(this._intRow(settings, 'notif-auto-dismiss', 'Auto-dismiss after (s, 0 = off)', 0, 120, 1));
         group.add(this._boolRow(settings, 'notif-suppress-native',

@@ -1,10 +1,10 @@
 {
-    "uuid": "mertnotch@mertdlkr",
-    "name": "MertNotch",
-    "description": "MacBook-style interactive notch. Replaces the top clock with a hover-expanding hub: system monitor, Google Calendar/Tasks via GOA, file shelf, sticky notes, dual-city weather, Pomodoro timer with session stats, privacy indicators, and quick system actions.",
+    "uuid": "nexnotch@nexvar",
+    "name": "NexNotch — Dynamic Island for GNOME",
+    "description": "Dynamic Island for GNOME 49+. A MacBook-notch-style pill replaces the top clock and expands on hover into a tabbed hub: live system monitor (CPU/RAM/temp/network), Google Calendar & Tasks via GOA, dual-city weather, Pomodoro timer with stats, sticky notes, file drop shelf, notification peek, and quick system actions. Built by NexVar.",
     "shell-version": ["49", "50"],
-    "url": "https://github.com/mertdlkr/mertnotch",
+    "url": "https://github.com/NexVar/NexNotch",
     "version-name": "1.0.0",
-    "settings-schema": "org.gnome.shell.extensions.mertnotch",
-    "gettext-domain": "mertnotch"
+    "settings-schema": "org.gnome.shell.extensions.nexnotch",
+    "gettext-domain": "nexnotch"
 }

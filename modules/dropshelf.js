@@ -7,7 +7,7 @@ import Soup from 'gi://Soup?version=3.0';
 
 import {getAccessToken, listGoogleAccounts} from './goa.js';
 
-const SHELF_DIR  = GLib.build_filenamev([GLib.get_user_cache_dir(), 'mertnotch', 'shelf']);
+const SHELF_DIR  = GLib.build_filenamev([GLib.get_user_cache_dir(), 'nexnotch', 'shelf']);
 const DRIVE_API  = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
 export const DropShelf = GObject.registerClass({
@@ -70,9 +70,9 @@ export const DropShelf = GObject.registerClass({
                     this._items.push(item);
                     this.emit('count-changed', this._items.length);
                     this._dispatch(item);
-                } catch (e) { logError(e, 'mertnotch:dropshelf:addURI:finish'); }
+                } catch (e) { logError(e, 'nexnotch:dropshelf:addURI:finish'); }
             });
-        } catch (e) { logError(e, 'mertnotch:dropshelf:addURI'); }
+        } catch (e) { logError(e, 'nexnotch:dropshelf:addURI'); }
     }
 
     _safeName(name) {
@@ -92,11 +92,11 @@ export const DropShelf = GObject.registerClass({
         const deleteAfter = this._settings.get_boolean('dropshelf-delete-after');
         if (dest === 'local') return;
         if (dest === 'folder') {
-            if (!folder) { logError(new Error('No destination folder configured'), 'mertnotch:dropshelf'); return; }
+            if (!folder) { logError(new Error('No destination folder configured'), 'nexnotch:dropshelf'); return; }
             this._copyToFolder(item, folder, deleteAfter);
         }
         if (dest === 'drive-oauth' || dest === 'local+drive-oauth') {
-            if (!acct) { logError(new Error('No Drive account configured'), 'mertnotch:dropshelf'); return; }
+            if (!acct) { logError(new Error('No Drive account configured'), 'nexnotch:dropshelf'); return; }
             this._uploadToDrive(item, acct, folderId, deleteAfter || dest === 'drive-oauth');
         }
     }
@@ -125,14 +125,14 @@ export const DropShelf = GObject.registerClass({
                     item.state = 'error';
                     item.error = String(e?.message ?? e);
                     this.emit('count-changed', this._items.length);
-                    logError(e, 'mertnotch:dropshelf:folder-copy');
+                    logError(e, 'nexnotch:dropshelf:folder-copy');
                 }
             });
         } catch (e) {
             item.state = 'error';
             item.error = String(e?.message ?? e);
             this.emit('count-changed', this._items.length);
-            logError(e, 'mertnotch:dropshelf:folder-copy-setup');
+            logError(e, 'nexnotch:dropshelf:folder-copy-setup');
         }
     }
 
@@ -168,7 +168,7 @@ export const DropShelf = GObject.registerClass({
                 name: item.name,
                 parents: [folderId],
             });
-            const boundary = `----mertnotch${Math.random().toString(36).slice(2)}`;
+            const boundary = `----nexnotch${Math.random().toString(36).slice(2)}`;
             const head = new TextEncoder().encode(
                 `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
                 `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`
@@ -204,7 +204,7 @@ export const DropShelf = GObject.registerClass({
         } catch (e) {
             item.state = 'error';
             item.error = String(e?.message ?? e);
-            logError(e, 'mertnotch:drive-upload');
+            logError(e, 'nexnotch:drive-upload');
             this.emit('count-changed', this._items.length);
         }
     }
@@ -221,17 +221,17 @@ export const DropShelf = GObject.registerClass({
     }
 
     render() {
-        const box = new St.BoxLayout({style_class: 'mertnotch-shelf', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-shelf', vertical: true, x_expand: true, y_expand: true});
         const dest = this._settings.get_string('dropshelf-destination');
         const acct = this._settings.get_string('dropshelf-account');
-        const header = new St.BoxLayout({style_class: 'mertnotch-shelf-header'});
+        const header = new St.BoxLayout({style_class: 'nexnotch-shelf-header'});
         header.add_child(new St.Label({
             text: `→ ${this._destLabel(dest, acct)}`,
-            style_class: 'mertnotch-shelf-dest',
+            style_class: 'nexnotch-shelf-dest',
             x_expand: true,
         }));
         const addBtn = new St.Button({
-            style_class: 'mertnotch-shelf-add',
+            style_class: 'nexnotch-shelf-add',
             label: '+ Add',
             accessible_name: 'Add files to shelf',
             can_focus: true,
@@ -239,7 +239,7 @@ export const DropShelf = GObject.registerClass({
         addBtn.connect('clicked', () => this.emit('request-add-file'));
         header.add_child(addBtn);
         const openBtn = new St.Button({
-            style_class: 'mertnotch-shelf-open',
+            style_class: 'nexnotch-shelf-open',
             label: 'Open ↗',
             accessible_name: 'Open shelf folder in file manager',
             can_focus: true,
@@ -253,38 +253,38 @@ export const DropShelf = GObject.registerClass({
 
         if (this._items.length === 0) {
             const empty = new St.BoxLayout({
-                style_class: 'mertnotch-empty',
+                style_class: 'nexnotch-empty',
                 vertical: true,
                 x_expand: true, y_expand: true,
             });
             empty.add_child(new St.Label({
                 text: 'No files on the shelf yet',
-                style_class: 'mertnotch-shelf-empty-title',
+                style_class: 'nexnotch-shelf-empty-title',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
             empty.add_child(new St.Label({
                 text: 'Click + Add above, or press Super+Shift+D.\n(Wayland blocks external drag-and-drop to shell widgets,\nso dropping files straight onto the notch does not work.)',
-                style_class: 'mertnotch-shelf-empty-body',
+                style_class: 'nexnotch-shelf-empty-body',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
             box.add_child(empty);
             return box;
         }
         for (const it of this._items) {
-            const row = new St.BoxLayout({style_class: 'mertnotch-shelf-row'});
-            const nameLabel = new St.Label({text: it.name, style_class: 'mertnotch-shelf-name', x_expand: true});
+            const row = new St.BoxLayout({style_class: 'nexnotch-shelf-row'});
+            const nameLabel = new St.Label({text: it.name, style_class: 'nexnotch-shelf-name', x_expand: true});
             if (it.state === 'uploading') nameLabel.add_style_class_name('uploading');
             if (it.state === 'error')     nameLabel.add_style_class_name('error');
             if (it.state === 'uploaded')  nameLabel.add_style_class_name('uploaded');
             row.add_child(nameLabel);
-            row.add_child(new St.Label({text: this._stateLabel(it.state), style_class: 'mertnotch-shelf-state'}));
-            row.add_child(new St.Label({text: this._sizeFmt(it.size), style_class: 'mertnotch-shelf-size'}));
+            row.add_child(new St.Label({text: this._stateLabel(it.state), style_class: 'nexnotch-shelf-state'}));
+            row.add_child(new St.Label({text: this._sizeFmt(it.size), style_class: 'nexnotch-shelf-size'}));
             if (it.state === 'error') {
-                const retry = new St.Button({style_class: 'mertnotch-shelf-retry', label: '↻'});
+                const retry = new St.Button({style_class: 'nexnotch-shelf-retry', label: '↻'});
                 retry.connect('clicked', () => this.retryItem(it.path));
                 row.add_child(retry);
             }
-            const rm = new St.Button({style_class: 'mertnotch-shelf-rm', label: '×'});
+            const rm = new St.Button({style_class: 'nexnotch-shelf-rm', label: '×'});
             rm.connect('clicked', () => this.removeItem(it.path));
             row.add_child(rm);
             box.add_child(row);

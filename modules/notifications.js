@@ -61,7 +61,7 @@ export const NotificationPeek = GObject.registerClass({
             this._pendingDismiss.delete(notif);
             try {
                 if (notif && typeof notif.destroy === 'function') notif.destroy();
-            } catch (e) { logError(e, 'mertnotch:notifications'); }
+            } catch (e) { logError(e, 'nexnotch:notifications'); }
             return GLib.SOURCE_REMOVE;
         });
         this._pendingDismiss.set(notif, timer);

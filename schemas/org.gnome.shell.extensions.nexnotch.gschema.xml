@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="org.gnome.shell.extensions.mertnotch"
-          path="/org/gnome/shell/extensions/mertnotch/">
+  <schema id="org.gnome.shell.extensions.nexnotch"
+          path="/org/gnome/shell/extensions/nexnotch/">
 
     <!-- modules -->
     <key name="show-system"        type="b"><default>true</default><summary>Show system monitor in expanded view</summary></key>

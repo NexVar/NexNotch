@@ -39,7 +39,7 @@ async function _loadEdsBindings() {
         _ECal        = (await import('gi://ECal?version=2.0')).default;
         _EDataServer = (await import('gi://EDataServer?version=1.2')).default;
     } catch (e) {
-        log('mertnotch: libecal GIR not available, tasks disabled');
+        log('nexnotch: libecal GIR not available, tasks disabled');
     }
 }
 
@@ -106,7 +106,7 @@ export const CalendarPeek = GObject.registerClass({
                 this.emit('updated');
             });
             this._filterSig2 = this._settings.connect('changed::tasks-enabled-lists', () => this.emit('updated'));
-        } catch (e) { logError(e, 'mertnotch:calendar'); }
+        } catch (e) { logError(e, 'nexnotch:calendar'); }
     }
 
     _refreshRange() {
@@ -164,7 +164,7 @@ export const CalendarPeek = GObject.registerClass({
                     parent = parentUid ? registry.ref_source(parentUid) : null;
                 }
             }
-        } catch (e) { logError(e, 'mertnotch:calendar:emailMap'); }
+        } catch (e) { logError(e, 'nexnotch:calendar:emailMap'); }
         return this._emailMap;
     }
 
@@ -193,7 +193,7 @@ export const CalendarPeek = GObject.registerClass({
                 this._refreshAllTasks();
                 return GLib.SOURCE_CONTINUE;
             });
-        } catch (e) { logError(e, 'mertnotch:tasks:start'); }
+        } catch (e) { logError(e, 'nexnotch:tasks:start'); }
     }
 
     _onTaskClient(source, res) {
@@ -202,7 +202,7 @@ export const CalendarPeek = GObject.registerClass({
             const client = _ECal.Client.connect_finish(res);
             this._taskClients.push({source, client});
             this._refreshTaskClient(source, client);
-        } catch (e) { logError(e, 'mertnotch:tasks:connect'); }
+        } catch (e) { logError(e, 'nexnotch:tasks:connect'); }
     }
 
     _refreshAllTasks() {
@@ -242,9 +242,9 @@ export const CalendarPeek = GObject.registerClass({
                         }
                         this._tasks.sort((a, b) => (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity));
                         this.emit('updated');
-                    } catch (e) { logError(e, 'mertnotch:tasks:list'); }
+                    } catch (e) { logError(e, 'nexnotch:tasks:list'); }
                 });
-        } catch (e) { logError(e, 'mertnotch:tasks:refresh'); }
+        } catch (e) { logError(e, 'nexnotch:tasks:refresh'); }
     }
 
     render(tab) {
@@ -253,31 +253,31 @@ export const CalendarPeek = GObject.registerClass({
     }
 
     _renderCalendar() {
-        const box = new St.BoxLayout({style_class: 'mertnotch-cal', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-cal', vertical: true, x_expand: true, y_expand: true});
         const events = this._filterEvents(this._events);
         if (events.length === 0) {
             box.add_child(new St.Label({
                 text: 'No upcoming events',
-                style_class: 'mertnotch-empty',
+                style_class: 'nexnotch-empty',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
             return box;
         }
         for (const ev of events.slice(0, 7)) {
-            const row = new St.BoxLayout({style_class: 'mertnotch-cal-row'});
-            row.add_child(new St.Label({text: this._formatTime(ev), style_class: 'mertnotch-cal-when'}));
-            row.add_child(new St.Label({text: ev.summary, style_class: 'mertnotch-cal-title', x_expand: true}));
+            const row = new St.BoxLayout({style_class: 'nexnotch-cal-row'});
+            row.add_child(new St.Label({text: this._formatTime(ev), style_class: 'nexnotch-cal-when'}));
+            row.add_child(new St.Label({text: ev.summary, style_class: 'nexnotch-cal-title', x_expand: true}));
             box.add_child(row);
         }
         return box;
     }
 
     _renderTasks() {
-        const box = new St.BoxLayout({style_class: 'mertnotch-tasks', vertical: true, x_expand: true, y_expand: true});
+        const box = new St.BoxLayout({style_class: 'nexnotch-tasks', vertical: true, x_expand: true, y_expand: true});
         if (!_ECal) {
             box.add_child(new St.Label({
                 text: 'libecal unavailable — install evolution-data-server',
-                style_class: 'mertnotch-empty',
+                style_class: 'nexnotch-empty',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
             return box;
@@ -299,7 +299,7 @@ export const CalendarPeek = GObject.registerClass({
         if (lists.length === 0) {
             box.add_child(new St.Label({
                 text: 'No pending tasks',
-                style_class: 'mertnotch-empty',
+                style_class: 'nexnotch-empty',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
             return box;
@@ -308,12 +308,12 @@ export const CalendarPeek = GObject.registerClass({
         /* if more than one list, show segmented tab bar */
         if (lists.length > 1) {
             if (!lists.includes(this._activeTaskList)) this._activeTaskList = lists[0];
-            const listBar = new St.BoxLayout({style_class: 'mertnotch-task-lists', x_expand: true});
+            const listBar = new St.BoxLayout({style_class: 'nexnotch-task-lists', x_expand: true});
             for (const name of lists) {
                 const active = name === this._activeTaskList;
                 const count = byList.get(name).length;
                 const btn = new St.Button({
-                    style_class: 'mertnotch-task-list-tab' + (active ? ' active' : ''),
+                    style_class: 'nexnotch-task-list-tab' + (active ? ' active' : ''),
                     label: `${name} · ${count}`,
                     x_expand: true,
                 });
@@ -332,10 +332,10 @@ export const CalendarPeek = GObject.registerClass({
     }
 
     _taskRow(t) {
-        const row = new St.BoxLayout({style_class: 'mertnotch-task-row'});
-        row.add_child(new St.Label({text: t.done ? '☑' : '☐', style_class: 'mertnotch-task-check'}));
+        const row = new St.BoxLayout({style_class: 'nexnotch-task-row'});
+        row.add_child(new St.Label({text: t.done ? '☑' : '☐', style_class: 'nexnotch-task-check'}));
         row.add_child(new St.Label({text: t.title, x_expand: true}));
-        if (t.due) row.add_child(new St.Label({text: this._formatDue(t.due), style_class: 'mertnotch-task-due'}));
+        if (t.due) row.add_child(new St.Label({text: this._formatDue(t.due), style_class: 'nexnotch-task-due'}));
         return row;
     }
 
