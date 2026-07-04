@@ -130,11 +130,6 @@
 .nexnotch-music-btn:hover { background-color: rgba(255, 255, 255, 0.15); color: white; }
 .nexnotch-music-btn.disabled { color: rgba(255, 255, 255, 0.25); }
 
-.nexnotch-bg.drag-active {
-    border: 2px dashed rgba(120, 170, 255, 0.9);
-    background-color: rgba(0, 0, 0, 0.96);
-}
-
 /* ——— notes ——— */
 .nexnotch-notes { spacing: 8px; }
 .nexnotch-notes-entry {
@@ -298,16 +293,6 @@
     box-shadow: 0 0 6px rgba(255, 120, 90, 0.7);
 }
 .nexnotch-dot.hot { background-color: rgba(255, 80, 60, 1); }
-
-.nexnotch-shelf-badge {
-    background-color: rgba(120, 170, 255, 0.3);
-    color: rgba(255, 255, 255, 0.96);
-    border-radius: 999px;
-    padding: 1px 7px;
-    font-size: 10px;
-    font-weight: 700;
-    min-width: 14px;
-}
 
 /* ——— expanded panel ——— */
 
@@ -520,85 +505,6 @@
     padding: 28px 10px;
 }
 
-/* ——— drop shelf ——— */
-
-.nexnotch-shelf-header {
-    padding: 2px 2px 10px 2px;
-    spacing: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-.nexnotch-shelf-dest {
-    color: rgba(120, 170, 255, 0.92);
-    font-family: "SF Pro Text", "Inter", sans-serif;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-}
-.nexnotch-shelf-empty-title {
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 20px 10px 6px 10px;
-}
-.nexnotch-shelf-empty-body {
-    color: rgba(255, 255, 255, 0.42);
-    font-size: 10px;
-    font-weight: 500;
-    padding: 0 10px 20px 10px;
-}
-
-.nexnotch-shelf-add,
-.nexnotch-shelf-open {
-    color: rgba(255, 255, 255, 0.72);
-    font-family: "SF Pro Text", "Inter", sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 4px 11px;
-    border-radius: 999px;
-    background-color: rgba(255, 255, 255, 0.07);
-    border: 0;
-    transition-duration: 160ms;
-}
-.nexnotch-shelf-add:hover,
-.nexnotch-shelf-open:hover {
-    color: white;
-    background-color: rgba(255, 255, 255, 0.16);
-}
-
-.nexnotch-shelf-row {
-    padding: 6px 6px;
-    spacing: 10px;
-    border-radius: 8px;
-    transition-duration: 120ms;
-}
-.nexnotch-shelf-row:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-.nexnotch-shelf-name {
-    color: rgba(255, 255, 255, 0.94);
-    font-family: "SF Pro Text", "Inter", sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-}
-.nexnotch-shelf-name.uploading { color: rgba(255, 190, 80, 0.96); }
-.nexnotch-shelf-name.uploaded  { color: rgba(140, 220, 140, 0.96); }
-.nexnotch-shelf-name.error     { color: rgba(255, 110, 90, 0.96); }
-
-.nexnotch-shelf-state { color: rgba(255, 255, 255, 0.5); font-size: 10px; }
-.nexnotch-shelf-size  { color: rgba(255, 255, 255, 0.42); font-size: 10px; font-feature-settings: "tnum"; }
-
-.nexnotch-shelf-retry,
-.nexnotch-shelf-rm {
-    color: rgba(255, 255, 255, 0.55);
-    font-size: 14px;
-    padding: 0 6px;
-    border: 0;
-    background-color: transparent;
-}
-.nexnotch-shelf-rm:hover    { color: rgba(255, 120, 120, 1); }
-.nexnotch-shelf-retry:hover { color: rgba(120, 170, 255, 1); }
-
 /* ——— peek (dynamic notification) ——— */
 
 .nexnotch-peek {
@@ -656,4 +562,34 @@
 .nexnotch-peek-dismiss:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: white;
+}
+
+/* ——— claude usage ——— */
+
+.nexnotch-claude { spacing: 10px; padding: 8px 2px; }
+
+.nexnotch-claude-rings { spacing: 36px; }
+
+.nexnotch-claude-ringcol { spacing: 6px; }
+
+.nexnotch-claude-ring-pct {
+    color: rgba(255, 255, 255, 0.92);
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
+}
+.nexnotch-claude-ring-pct.warn   { color: rgba(255, 190, 80, 0.95); }
+.nexnotch-claude-ring-pct.danger { color: rgba(255, 100, 90, 0.95); }
+
+.nexnotch-claude-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.nexnotch-claude-reset {
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 10px;
 }

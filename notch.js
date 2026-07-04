@@ -8,10 +8,8 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
 import {SystemMonitor}    from './modules/system.js';
-import {DropShelf}        from './modules/dropshelf.js';
 import {NotificationPeek} from './modules/notifications.js';
 import {CalendarPeek}     from './modules/calendar.js';
 import {MprisWatcher}     from './modules/mpris.js';
@@ -20,6 +18,7 @@ import {Weather}          from './modules/weather.js';
 import {Pomodoro}         from './modules/pomodoro.js';
 import {QuickHub}         from './modules/quick.js';
 import {Stats}            from './modules/stats.js';
+import {ClaudeUsage}      from './modules/claudeusage.js';
 
 const HOVER_DELAY_MS    = 180;
 const COLLAPSE_DELAY_MS = 300;
@@ -60,7 +59,6 @@ class Notch extends St.Widget {
 
         this._modules = {
             system:        new SystemMonitor(this._settings),
-            dropshelf:     new DropShelf(this._settings),
             notifications: new NotificationPeek(this._settings),
             calendar:      new CalendarPeek(this._settings),
             mpris:         new MprisWatcher(),
@@ -69,6 +67,7 @@ class Notch extends St.Widget {
             pomodoro:      new Pomodoro(this._settings),
             quick:         new QuickHub(this._settings),
             stats:         new Stats(this._settings),
+            claude:        new ClaudeUsage(this._settings),
         };
         this._modules.notes.setGrabActor(this);
         /* show pomodoro mini label at startup with idle styling */
@@ -81,8 +80,6 @@ class Notch extends St.Widget {
 
         this._modules.system.connect('updated',             (_, s)      => this._onSystemUpdated(s));
         this._modules.notifications.connect('peek',         (_, src, n) => this._peekNotification(src, n));
-        this._modules.dropshelf.connect('count-changed',    (_, n)      => this._updateShelfIndicator(n));
-        this._modules.dropshelf.connect('request-add-file', ()          => this.openFilePicker());
         this._modules.calendar.connect('updated', () => {
             if (this._expanded && (this._activeTab === 'calendar' || this._activeTab === 'tasks')) {
                 this._renderTab();
@@ -93,6 +90,7 @@ class Notch extends St.Widget {
         this._modules.pomodoro.connect('tick',              ()          => { if (this._expanded && this._activeTab === 'pomodoro') this._renderTab(); this._updatePomodoroIndicator(); });
         this._modules.pomodoro.connect('state',             ()          => { if (this._expanded && this._activeTab === 'pomodoro') this._renderTab(); this._updatePomodoroIndicator(); });
         this._modules.quick.connect('updated',              ()          => { if (this._expanded && this._activeTab === 'quick') this._renderTab(); this._updatePrivacyIndicator(); });
+        this._modules.claude.connect('updated',              ()          => { if (this._expanded && this._activeTab === 'claude') this._renderTab(); });
 
         this._hoverHandlerId = this.connect('notify::hover', () => this._onHoverChanged());
         this.connect('destroy', () => this._onDestroy());
@@ -273,13 +271,11 @@ class Notch extends St.Widget {
         this._clockLabel = new St.Label({text: '', style_class: 'nexnotch-clock', y_align: Clutter.ActorAlign.CENTER});
         this._centerCluster.add_child(this._clockLabel);
 
-        /* right cluster: date + shelf badge */
+        /* right cluster: date */
         this._rightCluster = new St.BoxLayout({style_class: 'nexnotch-cluster nexnotch-right', vertical: false});
         this._dateLabelC = new St.Label({text: '', style_class: 'nexnotch-date-mini', y_align: Clutter.ActorAlign.CENTER});
-        this._shelfBadge = new St.Label({text: '', style_class: 'nexnotch-shelf-badge', visible: false, y_align: Clutter.ActorAlign.CENTER});
         /* pomoLabel now lives in _leftCluster (user-preferred position) */
         this._rightCluster.add_child(this._dateLabelC);
-        this._rightCluster.add_child(this._shelfBadge);
 
         this._collapsed.add_child(this._leftCluster);
         this._collapsed.add_child(this._centerCluster);
@@ -309,7 +305,7 @@ class Notch extends St.Widget {
         this._expandedLayer.add_child(this._content);
 
         this._tabButtons = {};
-        const tabIds = ['system', 'calendar', 'tasks', 'shelf', 'notes', 'weather', 'pomodoro', 'stats', 'quick'];
+        const tabIds = ['system', 'calendar', 'tasks', 'notes', 'weather', 'pomodoro', 'stats', 'quick', 'claude'];
         for (const id of tabIds) {
             const btn = new St.Button({
                 style_class: 'nexnotch-tab',
@@ -328,84 +324,27 @@ class Notch extends St.Widget {
     }
 
     _setupDnd() {
-        this._delegate = this;
-        if (Main.xdndHandler) {
-            this._xdndBeginId = Main.xdndHandler.connect('drag-begin', () => {
-                log('nexnotch: xdnd drag-begin received');
-                this._xdndActive = true;
-                if (!this._expanded) {
-                    this._clearHoverTimeout();
-                    this._switchTab('shelf');
-                    this._expand();
-                } else {
-                    this._switchTab('shelf');
-                }
-                this._bg?.add_style_class_name('drag-active');
-            });
-            this._xdndEndId = Main.xdndHandler.connect('drag-end', () => {
-                log('nexnotch: xdnd drag-end received');
-                this._xdndActive = false;
-                this._bg?.remove_style_class_name('drag-active');
-                if (!this.hover) this._scheduleCollapse();
-            });
-        } else {
-            log('nexnotch: Main.xdndHandler unavailable — external drag-drop will not work');
-        }
         try {
-            Main.wm.addKeybinding('shortcut-filepicker',
-                this._settings,
-                Meta.KeyBindingFlags.NONE,
-                Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
-                () => this.openFilePicker());
             Main.wm.addKeybinding('shortcut-toggle',
                 this._settings,
                 Meta.KeyBindingFlags.NONE,
                 Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
                 () => this._expanded ? this._collapse() : this._expand());
-            this._keybindings = ['shortcut-filepicker', 'shortcut-toggle'];
+            this._keybindings = ['shortcut-toggle'];
         } catch (e) { logError(e, 'nexnotch:keybinding'); }
-    }
-
-    acceptDrop(source) {
-        const uris = this._extractUris(source);
-        if (uris.length === 0) return false;
-        for (const uri of uris) this._modules.dropshelf.addURI(uri);
-        return true;
-    }
-
-    handleDragOver(source) {
-        if (!this._expanded) this._scheduleExpand();
-        const uris = this._extractUris(source);
-        return uris.length ? DND.DragMotionResult.COPY_DROP : DND.DragMotionResult.CONTINUE;
-    }
-
-    _extractUris(source) {
-        if (!source) return [];
-        if (source.getDragActorSource) {
-            const s = source.getDragActorSource();
-            if (s?.uri)  return [s.uri];
-            if (s?.uris) return s.uris;
-            if (s?.file) return [s.file.get_uri()];
-        }
-        if (source.uri)  return [source.uri];
-        if (source.uris) return source.uris;
-        if (source.file) return [source.file.get_uri()];
-        if (source.uriList) return source.uriList;
-        return [];
     }
 
     _tabLabel(id) {
         return {
-            system: 'System', calendar: 'Cal', tasks: 'Tasks', shelf: 'Shelf',
+            system: 'System', calendar: 'Cal', tasks: 'Tasks',
             notes:  'Notes',  weather:  'Weather', pomodoro: 'Timer',
-            stats:  'Stats',  quick: 'Quick',
+            stats:  'Stats',  quick: 'Quick', claude: 'Claude',
         }[id] ?? id;
     }
 
     _tabEnabled(id) {
         const key = {
             system:   'show-system',
-            shelf:    'show-dropshelf',
             calendar: 'show-calendar',
             tasks:    'show-tasks',
             notes:    null,
@@ -413,6 +352,7 @@ class Notch extends St.Widget {
             pomodoro: null,
             stats:    null,
             quick:    null,
+            claude:   'show-claude-usage',
         }[id];
         if (!key) return true;
         return this._settings.get_boolean(key);
@@ -449,9 +389,9 @@ class Notch extends St.Widget {
 
     _moduleEnabled(name) {
         if (name === 'calendar')      return this._tabEnabled('calendar') || this._tabEnabled('tasks');
-        if (name === 'dropshelf')     return this._tabEnabled('shelf');
         if (name === 'system')        return this._settings.get_boolean('show-system');
         if (name === 'notifications') return this._settings.get_boolean('show-notifications');
+        if (name === 'claude')        return this._settings.get_boolean('show-claude-usage');
         return true;
     }
 
@@ -469,8 +409,6 @@ class Notch extends St.Widget {
         for (const m of Object.values(this._modules)) m.stop?.();
         this._restoreDateMenu();
         if (this._settingsSig) { this._settings.disconnect(this._settingsSig); this._settingsSig = 0; }
-        if (this._xdndBeginId && Main.xdndHandler) { Main.xdndHandler.disconnect(this._xdndBeginId); this._xdndBeginId = 0; }
-        if (this._xdndEndId   && Main.xdndHandler) { Main.xdndHandler.disconnect(this._xdndEndId);   this._xdndEndId   = 0; }
         for (const key of this._keybindings ?? []) {
             try { Main.wm.removeKeybinding(key); } catch (_) {}
         }
@@ -569,7 +507,7 @@ class Notch extends St.Widget {
         this._hoverTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HOVER_DELAY_MS, () => {
             this._hoverTimeout = 0;
             if (this._peekActive) return GLib.SOURCE_REMOVE;
-            if (this.hover || this._pointerInside() || this._xdndActive) this._expand();
+            if (this.hover || this._pointerInside()) this._expand();
             return GLib.SOURCE_REMOVE;
         });
     }
@@ -580,7 +518,7 @@ class Notch extends St.Widget {
         this._clearCollapseTimeout();
         this._collapseTimeout = GLib.timeout_add(GLib.PRIORITY_DEFAULT, COLLAPSE_DELAY_MS, () => {
             this._collapseTimeout = 0;
-            if (this.hover || this._pointerInside() || this._xdndActive || this._notesFocused) {
+            if (this.hover || this._pointerInside() || this._notesFocused) {
                 this._scheduleCollapse();
                 return GLib.SOURCE_REMOVE;
             }
@@ -621,6 +559,7 @@ class Notch extends St.Widget {
         this._modules?.notes?._releaseGrab?.();
         this._expanded = false;
         this._modules?.system?.setFocused?.(false);
+        this._modules?.quick?.setFocused?.(false);
         this._collapsed.show();
         this.remove_all_transitions();
         const targetW = this._measureCollapsedWidth();
@@ -645,6 +584,7 @@ class Notch extends St.Widget {
         /* Bump system poll to user-selected fast rate only when user is
            actually looking at the system tab, otherwise fall back to 3x */
         this._modules?.system?.setFocused?.(this._expanded && id === 'system');
+        this._modules?.quick?.setFocused?.(this._expanded && id === 'quick');
         const accent = this._accentColor ?? this._settings.get_string('accent-color');
         for (const [tid, btn] of Object.entries(this._tabButtons)) {
             if (tid === id) {
@@ -676,7 +616,6 @@ class Notch extends St.Widget {
         if (!this._expanded) return;
         const mod = {
             system:   this._modules.system,
-            shelf:    this._modules.dropshelf,
             calendar: this._modules.calendar,
             tasks:    this._modules.calendar,
             notes:    this._modules.notes,
@@ -684,6 +623,7 @@ class Notch extends St.Widget {
             pomodoro: this._modules.pomodoro,
             stats:    this._modules.stats,
             quick:    this._modules.quick,
+            claude:   this._modules.claude,
         }[this._activeTab];
         /* System tab gets an optional music card passed in so the whole
            bottom-right corner can be used for media controls when MPRIS
@@ -832,14 +772,6 @@ class Notch extends St.Widget {
             rhythmbox:       'rhythmbox',
         }[desktopEntry.toLowerCase()];
         return fallback ?? 'audio-x-generic-symbolic';
-    }
-
-    _updateShelfIndicator(n) {
-        if (n > 0) { this._shelfBadge.text = `${n}`; this._shelfBadge.visible = true; }
-        else       { this._shelfBadge.visible = false; }
-        this._resizeCollapsed();
-        /* if the user is looking at the Shelf tab while items come in, refresh it */
-        if (this._expanded && this._activeTab === 'shelf') this._renderTab();
     }
 
     _updatePomodoroIndicator() {
@@ -1005,29 +937,4 @@ class Notch extends St.Widget {
         else GLib.idle_add(GLib.PRIORITY_DEFAULT, () => { finalize(); return GLib.SOURCE_REMOVE; });
     }
 
-    openFilePicker() {
-        const zenity = GLib.find_program_in_path('zenity');
-        if (!zenity) {
-            log('nexnotch: zenity not installed — drag-drop via `+ Add` is unavailable');
-            return;
-        }
-        try {
-            const proc = Gio.Subprocess.new(
-                [zenity, '--file-selection', '--multiple', '--separator=\n', '--title=Add to notch shelf'],
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
-            );
-            proc.communicate_utf8_async(null, null, (p, res) => {
-                try {
-                    const [, stdout] = p.communicate_utf8_finish(res);
-                    if (!stdout) return;
-                    for (const line of stdout.trim().split('\n').filter(Boolean)) {
-                        const uri = line.startsWith('/') ? Gio.File.new_for_path(line).get_uri() : line;
-                        this._modules.dropshelf.addURI(uri);
-                    }
-                } catch (e) { logError(e, 'nexnotch:filepicker:finish'); }
-            });
-        } catch (e) {
-            logError(e, 'nexnotch:filepicker');
-        }
-    }
 });

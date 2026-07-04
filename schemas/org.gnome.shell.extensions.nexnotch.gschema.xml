@@ -5,10 +5,10 @@
 
     <!-- modules -->
     <key name="show-system"        type="b"><default>true</default><summary>Show system monitor in expanded view</summary></key>
-    <key name="show-dropshelf"     type="b"><default>true</default><summary>Enable file drop shelf</summary></key>
     <key name="show-notifications" type="b"><default>true</default><summary>Enable dynamic notification peek</summary></key>
     <key name="show-calendar"      type="b"><default>true</default><summary>Enable Google Calendar peek</summary></key>
     <key name="show-tasks"         type="b"><default>true</default><summary>Enable Google Tasks peek</summary></key>
+    <key name="show-claude-usage"  type="b"><default>true</default><summary>Show Claude Code usage/limit tab</summary></key>
 
     <!-- clock -->
     <key name="hide-datemenu"    type="b"><default>true</default><summary>Hide the built-in GNOME clock / date menu</summary></key>
@@ -38,22 +38,6 @@
     <!-- notifications -->
     <key name="notif-auto-dismiss" type="i"><default>8</default><range min="0" max="120"/><summary>Auto-dismiss banner notifications after N seconds (0=disabled)</summary></key>
 
-    <!-- drop shelf -->
-    <key name="dropshelf-destination" type="s">
-      <choices>
-        <choice value="local"/>
-        <choice value="folder"/>
-        <choice value="drive-oauth"/>
-        <choice value="local+drive-oauth"/>
-      </choices>
-      <default>"local"</default>
-      <summary>Where dropped files go</summary>
-    </key>
-    <key name="dropshelf-folder"        type="s"><default>""</default>    <summary>Filesystem folder path to copy dropped files into (e.g. mounted Drive)</summary></key>
-    <key name="dropshelf-account"       type="s"><default>""</default>    <summary>GOA Google account email for OAuth Drive uploads (legacy)</summary></key>
-    <key name="dropshelf-drive-folder"  type="s"><default>"root"</default><summary>Drive folder ID for OAuth upload (root = My Drive)</summary></key>
-    <key name="dropshelf-delete-after"  type="b"><default>false</default> <summary>Delete local copy after successful dispatch</summary></key>
-
     <!-- notifications: DND + native suppression -->
     <key name="notif-suppress-native" type="b"><default>true</default><summary>Auto-dismiss native banner when notch peek shows</summary></key>
 
@@ -61,10 +45,6 @@
     <key name="hide-top-bar-center"  type="b"><default>false</default><summary>(reserved) keep other center-box widgets hidden</summary></key>
 
     <!-- keybindings -->
-    <key name="shortcut-filepicker" type="as">
-      <default>["&lt;Super&gt;&lt;Shift&gt;d"]</default>
-      <summary>Open file picker and add to shelf</summary>
-    </key>
     <key name="shortcut-toggle" type="as">
       <default>["&lt;Super&gt;n"]</default>
       <summary>Toggle the notch (expand/collapse)</summary>
@@ -90,6 +70,13 @@
       <default>30</default>
       <range min="5" max="240"/>
       <summary>Weather refresh interval (minutes)</summary>
+    </key>
+
+    <!-- claude usage -->
+    <key name="claude-usage-refresh" type="i">
+      <default>15</default>
+      <range min="5" max="120"/>
+      <summary>Claude usage refresh interval (minutes)</summary>
     </key>
 
     <!-- pomodoro -->

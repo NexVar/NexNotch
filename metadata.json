@@ -1,7 +1,7 @@
 {
     "uuid": "nexnotch@nexvar",
     "name": "NexNotch — Dynamic Island for GNOME",
-    "description": "Dynamic Island for GNOME 49+. A MacBook-notch-style pill replaces the top clock and expands on hover into a tabbed hub: live system monitor (CPU/RAM/temp/network), Google Calendar & Tasks via GOA, dual-city weather, Pomodoro timer with stats, sticky notes, file drop shelf, notification peek, and quick system actions. Built by NexVar.",
+    "description": "Dynamic Island for GNOME 49+. A MacBook-notch-style pill replaces the top clock and expands on hover into a tabbed hub: live system monitor (CPU/RAM/temp/network/storage), Google Calendar & Tasks via GOA, dual-city weather, Pomodoro timer with stats, sticky notes, Claude Code usage rings, notification peek, and quick system actions. Built by NexVar.",
     "shell-version": ["49", "50"],
     "url": "https://github.com/NexVar/NexNotch",
     "version-name": "1.0.0",

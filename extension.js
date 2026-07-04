@@ -12,7 +12,7 @@ import {Notch} from './notch.js';
 
 export default class NexNotchExtension extends Extension {
     enable() {
-        this._settings = this.getSettings();
+        this._settings = this.getSettings('org.gnome.shell.extensions.nexnotch');
 
         /* Evolution Data Server's source-registry D-Bus service sometimes
            doesn't auto-activate on login; when that happens Calendar and

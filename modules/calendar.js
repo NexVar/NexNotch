@@ -13,7 +13,7 @@ const CALENDAR_SERVER_XML = `
       <arg type="b" direction="in" name="force_reload"/>
     </method>
     <signal name="EventsAddedOrUpdated">
-      <arg type="a(ssbxx)" name="events"/>
+      <arg type="a(ssxxa{sv})" name="events"/>
     </signal>
     <signal name="EventsRemoved">
       <arg type="as" name="ids"/>
@@ -21,7 +21,6 @@ const CALENDAR_SERVER_XML = `
     <signal name="ClientDisappeared">
       <arg type="s" name="source_uid"/>
     </signal>
-    <property name="Events" type="a(ssbxx)" access="read"/>
     <property name="HasCalendars" type="b" access="read"/>
   </interface>
 </node>`;
@@ -117,7 +116,17 @@ export const CalendarPeek = GObject.registerClass({
     }
 
     _onEventsAdded(tuples) {
-        for (const [id, summary, allDay, start, end] of tuples) {
+        for (const [id, summary, start, end, extras] of tuples) {
+            /* GNOME's CalendarServer doesn't send an explicit all-day flag
+               in `extras` in practice — derive it from the span instead.
+               All-day events are aligned to local-midnight, not UTC
+               midnight, so only the duration (exact multiple of a day) is
+               a reliable signal here. */
+            let allDay = !!(extras?.['all-day'] ?? extras?.allDay);
+            if (!allDay) {
+                const span = end - start;
+                allDay = span > 0 && span % 86400 === 0;
+            }
             const existing = this._events.findIndex(e => e.id === id);
             const ev = {id, summary, allDay, start, end};
             if (existing >= 0) this._events[existing] = ev;
@@ -130,14 +139,15 @@ export const CalendarPeek = GObject.registerClass({
     _filterEvents(events) {
         const enabled = this._settings.get_strv('calendar-enabled-sources');
         if (enabled.length === 0) return events;
-        /* Event IDs from Shell.CalendarServer are `SourceUID:EventUID`.
-           We map SourceUID to GOA email via the EDS registry if available.
-           Unknown sources are REJECTED when the filter is non-empty — fail
-           closed so disabled accounts can't leak through. */
+        /* Event IDs from Shell.CalendarServer are `SourceUID\nEventUID\n...`
+           (newline-separated, not colon-separated). We map SourceUID to GOA
+           email via the EDS registry if available. Unknown sources are
+           REJECTED when the filter is non-empty — fail closed so disabled
+           accounts can't leak through. */
         try {
             const emailFor = this._sourceEmailMap();
             return events.filter(e => {
-                const srcUid = (e.id ?? '').split(':')[0];
+                const srcUid = (e.id ?? '').split('\n')[0];
                 const email = emailFor.get(srcUid);
                 return !!email && enabled.includes(email);
             });

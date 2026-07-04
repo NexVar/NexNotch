@@ -23,6 +23,7 @@ export const SystemMonitor = GObject.registerClass({
         this._hwmonInputs = this._findHwmonInputs();
         this._batteryPath = this._findBattery();
         this._stats = this._emptyStats();
+        this._diskCapTimer = 0;
     }
 
     _emptyStats() {
@@ -30,6 +31,7 @@ export const SystemMonitor = GObject.registerClass({
             cpu: 0, ram: 0, swap: 0,
             net_rx: 0, net_tx: 0,
             disk_r: 0, disk_w: 0,
+            disk_used: 0, disk_total: 0,
             temp: 0, temp_cpu: 0,
             load: [0, 0, 0],
             uptime: 0,
@@ -42,6 +44,14 @@ export const SystemMonitor = GObject.registerClass({
         this._tick();
         this._restartTimer();
         this._settingsSig = this._settings.connect('changed::poll-interval', () => this._restartTimer());
+        /* Disk capacity barely changes — poll it far less often than the
+           rest of the stats instead of doing filesystem-info syscalls on
+           every fast tick. */
+        this._tickDiskCapacity();
+        this._diskCapTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 60, () => {
+            this._tickDiskCapacity();
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     /* called by notch when expanded+system-tab visible vs collapsed/other.
@@ -66,6 +76,7 @@ export const SystemMonitor = GObject.registerClass({
 
     stop() {
         if (this._timer) { GLib.source_remove(this._timer); this._timer = 0; }
+        if (this._diskCapTimer) { GLib.source_remove(this._diskCapTimer); this._diskCapTimer = 0; }
         if (this._settingsSig) { this._settings.disconnect(this._settingsSig); this._settingsSig = 0; }
     }
 
@@ -165,6 +176,46 @@ export const SystemMonitor = GObject.registerClass({
         const dw = (w - this._lastDisk.w) * 512 / 1024;
         this._lastDisk = {r, w}; this._lastDiskTime = now;
         return dt > 0 ? {r: dr / dt, w: dw / dt} : {r: 0, w: 0};
+    }
+
+    _tickDiskCapacity() {
+        try {
+            const cap = this._diskCapacity();
+            this._stats.disk_used  = cap.used;
+            this._stats.disk_total = cap.total;
+            this.emit('updated', this._stats);
+        } catch (e) { logError(e, 'nexnotch:system:diskcap'); }
+    }
+
+    /* Sums real block-device filesystems (root disk, other internal
+       drives) into one used/total figure — like macOS's "About This Mac"
+       storage bar. Dedupes by source device so bind mounts / multiple
+       mountpoints of the same partition aren't double-counted. */
+    _diskCapacity() {
+        const SKIP_FS = new Set([
+            'tmpfs', 'devtmpfs', 'overlay', 'squashfs', 'proc', 'sysfs',
+            'cgroup', 'cgroup2', 'devpts', 'ramfs', 'fuse.portal',
+            'autofs', 'binfmt_misc', 'tracefs', 'debugfs', 'mqueue',
+        ]);
+        const seen = new Set();
+        let total = 0, free = 0;
+        const lines = this._readFile('/proc/mounts').split('\n');
+        for (const line of lines) {
+            const parts = line.split(' ');
+            if (parts.length < 3) continue;
+            const [source, mount, fstype] = parts;
+            if (!source.startsWith('/dev/')) continue;
+            if (SKIP_FS.has(fstype)) continue;
+            if (seen.has(source)) continue;
+            seen.add(source);
+            try {
+                const file = Gio.File.new_for_path(mount);
+                const info = file.query_filesystem_info('filesystem::size,filesystem::free', null);
+                total += info.get_attribute_uint64('filesystem::size');
+                free  += info.get_attribute_uint64('filesystem::free');
+            } catch (_) {}
+        }
+        return {total, free, used: total - free};
     }
 
     _findThermalZones() {
@@ -321,6 +372,9 @@ export const SystemMonitor = GObject.registerClass({
         stats.push(['Disk ↓', this._kbFmt(s.disk_r)]);
         stats.push(['Disk ↑', this._kbFmt(s.disk_w)]);
         if (s.temp > 0)   stats.push(['Temp',  `${s.temp.toFixed(0)}°C`]);
+        if (s.disk_total > 0) {
+            stats.push(['Storage', `${this._gbFmt(s.disk_used)} / ${this._gbFmt(s.disk_total)}`]);
+        }
         stats.push(['Load', s.load.map(x => x.toFixed(2)).join(' ')]);
         for (const [label, value] of stats) {
             const row = new St.BoxLayout({style_class: 'nexnotch-sys-inline-row', vertical: false, x_expand: true});
@@ -340,6 +394,10 @@ export const SystemMonitor = GObject.registerClass({
         const h = Math.floor(minutes / 60);
         const m = minutes % 60;
         return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+
+    _gbFmt(bytes) {
+        return `${(bytes / (1024 ** 3)).toFixed(0)} GB`;
     }
 
     _kbFmt(kb) {

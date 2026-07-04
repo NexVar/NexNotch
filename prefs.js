@@ -10,15 +10,15 @@ import {listGoogleAccounts} from './modules/goa.js';
 
 export default class NexNotchPrefs extends ExtensionPreferences {
     async fillPreferencesWindow(window) {
-        const settings = this.getSettings();
+        const settings = this.getSettings('org.gnome.shell.extensions.nexnotch');
         window.set_default_size(720, 720);
 
         window.add(this._generalPage(settings));
         window.add(this._appearancePage(settings));
         window.add(this._clockPage(settings));
-        window.add(await this._shelfPage(settings));
         window.add(this._notifPage(settings));
         window.add(this._weatherPage(settings));
+        window.add(this._claudePage(settings));
         window.add(this._pomodoroPage(settings));
         window.add(await this._accountsPage(settings));
         window.add(this._keybindPage(settings));
@@ -29,10 +29,10 @@ export default class NexNotchPrefs extends ExtensionPreferences {
 
         const modGroup = new Adw.PreferencesGroup({title: 'Modules'});
         modGroup.add(this._boolRow(settings, 'show-system',        'System monitor'));
-        modGroup.add(this._boolRow(settings, 'show-dropshelf',     'File drop shelf'));
         modGroup.add(this._boolRow(settings, 'show-notifications', 'Dynamic notification peek'));
         modGroup.add(this._boolRow(settings, 'show-calendar',      'Google Calendar'));
         modGroup.add(this._boolRow(settings, 'show-tasks',         'Google Tasks'));
+        modGroup.add(this._boolRow(settings, 'show-claude-usage',  'Claude Code usage'));
         page.add(modGroup);
 
         const perfGroup = new Adw.PreferencesGroup({title: 'Performance'});
@@ -138,6 +138,18 @@ export default class NexNotchPrefs extends ExtensionPreferences {
         opts.add(unit);
         opts.add(this._intRow(settings, 'weather-refresh', 'Refresh interval (min)', 5, 240, 5));
         page.add(opts);
+        return page;
+    }
+
+    _claudePage(settings) {
+        const page = new Adw.PreferencesPage({title: 'Claude', icon_name: 'preferences-system-symbolic'});
+        const group = new Adw.PreferencesGroup({
+            title: 'Claude Code usage',
+            description: 'Reads the local Claude Code CLI session (the same login `claude` already uses) and shows session/weekly quota utilization. Requires having run `claude` at least once to sign in.',
+        });
+        group.add(this._boolRow(settings, 'show-claude-usage', 'Show Claude usage tab'));
+        group.add(this._intRow(settings, 'claude-usage-refresh', 'Refresh interval (min)', 5, 120, 5));
+        page.add(group);
         return page;
     }
 
@@ -313,13 +325,6 @@ export default class NexNotchPrefs extends ExtensionPreferences {
             description: 'Edit with accelerator syntax, e.g. <Super><Shift>d',
         });
 
-        const fp = new Adw.EntryRow({title: 'Open file picker → add to shelf'});
-        fp.set_text((settings.get_strv('shortcut-filepicker')[0]) ?? '');
-        fp.connect('changed', () => {
-            settings.set_strv('shortcut-filepicker', [fp.get_text()]);
-        });
-        group.add(fp);
-
         const tg = new Adw.EntryRow({title: 'Toggle notch (expand / collapse)'});
         tg.set_text((settings.get_strv('shortcut-toggle')[0]) ?? '');
         tg.connect('changed', () => {
@@ -349,88 +354,6 @@ export default class NexNotchPrefs extends ExtensionPreferences {
         group.add(fmt);
 
         page.add(group);
-        return page;
-    }
-
-    async _shelfPage(settings) {
-        const page = new Adw.PreferencesPage({title: 'Drop Shelf', icon_name: 'folder-download-symbolic'});
-
-        const destGroup = new Adw.PreferencesGroup({
-            title: 'Destination',
-            description: 'Where files dropped onto the notch are sent. Configured once, applies to every drop.',
-        });
-
-        const destRow = new Adw.ComboRow({title: 'Destination'});
-        const destModel = new Gtk.StringList();
-        destModel.append('Local shelf only');
-        destModel.append('Folder (e.g. a mounted Drive folder)');
-        destModel.append('Google Drive via OAuth');
-        destModel.append('Local + Google Drive via OAuth');
-        destRow.set_model(destModel);
-        const destMap = ['local', 'folder', 'drive-oauth', 'local+drive-oauth'];
-        destRow.set_selected(Math.max(0, destMap.indexOf(settings.get_string('dropshelf-destination'))));
-        destRow.connect('notify::selected', () => {
-            settings.set_string('dropshelf-destination', destMap[destRow.get_selected()]);
-        });
-        destGroup.add(destRow);
-
-        /* folder destination picker */
-        const folderRow = new Adw.ActionRow({
-            title: 'Destination folder',
-            subtitle: settings.get_string('dropshelf-folder') || '(not set)',
-        });
-        const browseBtn = new Gtk.Button({label: 'Browse…', css_classes: ['flat']});
-        browseBtn.connect('clicked', () => {
-            const dialog = new Gtk.FileDialog({title: 'Pick destination folder'});
-            dialog.select_folder(browseBtn.get_root(), null, (dlg, res) => {
-                try {
-                    const f = dlg.select_folder_finish(res);
-                    if (f) {
-                        const path = f.get_path();
-                        settings.set_string('dropshelf-folder', path);
-                        folderRow.set_subtitle(path);
-                    }
-                } catch (_) {}
-            });
-        });
-        folderRow.add_suffix(browseBtn);
-        destGroup.add(folderRow);
-
-        destGroup.add(this._boolRow(settings, 'dropshelf-delete-after',
-            'Delete local cache copy after successful dispatch'));
-
-        page.add(destGroup);
-
-        const oauthGroup = new Adw.PreferencesGroup({
-            title: 'Google Drive via OAuth (legacy)',
-            description: 'Only needed if your Drive is NOT already mounted as a filesystem. Most users will use "Folder" above pointing to their mounted Drive.',
-        });
-
-        const acctRow = new Adw.ComboRow({title: 'Google account'});
-        const acctModel = new Gtk.StringList();
-        let accounts = [];
-        try {
-            accounts = await listGoogleAccounts();
-        } catch (e) {
-            console.error('nexnotch prefs: listGoogleAccounts failed', e);
-        }
-        const acctEmails = accounts.map(a => a.email);
-        if (acctEmails.length === 0) acctModel.append('(no Google accounts in GOA)');
-        else for (const e of acctEmails) acctModel.append(e);
-        acctRow.set_model(acctModel);
-        const saved = settings.get_string('dropshelf-account');
-        if (saved && acctEmails.includes(saved)) acctRow.set_selected(acctEmails.indexOf(saved));
-        acctRow.connect('notify::selected', () => {
-            const idx = acctRow.get_selected();
-            if (acctEmails[idx]) settings.set_string('dropshelf-account', acctEmails[idx]);
-        });
-        oauthGroup.add(acctRow);
-
-        const driveFolderRow = new Adw.EntryRow({title: 'Drive folder ID (root = My Drive)'});
-        settings.bind('dropshelf-drive-folder', driveFolderRow, 'text', 0);
-        oauthGroup.add(driveFolderRow);
-
-        page.add(oauthGroup);
         return page;
     }
 

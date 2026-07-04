@@ -34,14 +34,30 @@ export const QuickHub = GObject.registerClass({
 
     start() {
         this._stopped = false;
+        this._focused = false;
         this._refresh();
-        /* 15 s is enough for privacy/BT status — 4 subprocess spawns per
-           refresh × 12/min was too aggressive. */
-        this._poller = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 15, () => {
-            if (this._stopped) return GLib.SOURCE_REMOVE;
+    }
+
+    /* Mic/cam/BT status only matters while the Quick tab is actually on
+       screen — each refresh spawns up to 3 subprocesses (pactl/fuser/
+       upower). Only run the poller while focused, so a background Quick
+       module costs nothing. */
+    setFocused(focused) {
+        if (this._focused === focused) return;
+        this._focused = focused;
+        if (focused) {
             this._refresh();
-            return GLib.SOURCE_CONTINUE;
-        });
+            if (!this._poller) {
+                this._poller = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 15, () => {
+                    if (this._stopped) return GLib.SOURCE_REMOVE;
+                    this._refresh();
+                    return GLib.SOURCE_CONTINUE;
+                });
+            }
+        } else if (this._poller) {
+            GLib.source_remove(this._poller);
+            this._poller = 0;
+        }
     }
 
     stop() {
