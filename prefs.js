@@ -19,6 +19,7 @@ export default class NexNotchPrefs extends ExtensionPreferences {
         window.add(this._notifPage(settings));
         window.add(this._weatherPage(settings));
         window.add(this._claudePage(settings));
+        window.add(this._notesPage(settings));
         window.add(this._pomodoroPage(settings));
         window.add(await this._accountsPage(settings));
         window.add(this._keybindPage(settings));
@@ -149,6 +150,47 @@ export default class NexNotchPrefs extends ExtensionPreferences {
         });
         group.add(this._boolRow(settings, 'show-claude-usage', 'Show Claude usage tab'));
         group.add(this._intRow(settings, 'claude-usage-refresh', 'Refresh interval (min)', 5, 120, 5));
+        page.add(group);
+        return page;
+    }
+
+    _notesPage(settings) {
+        const page = new Adw.PreferencesPage({title: 'Notes', icon_name: 'text-editor-symbolic'});
+        const group = new Adw.PreferencesGroup({
+            title: 'Storage',
+            description: 'Notes are saved as markdown files (title from the note, or the body if untitled), one dated subfolder per day (DD-MM-YY).',
+        });
+
+        const folderRow = new Adw.ActionRow({
+            title: 'Notes folder',
+            subtitle: settings.get_string('notes-folder') || '(default)',
+        });
+        const browseBtn = new Gtk.Button({label: 'Browse…', css_classes: ['flat']});
+        browseBtn.connect('clicked', () => {
+            const dialog = new Gtk.FileDialog({title: 'Pick notes folder'});
+            dialog.select_folder(browseBtn.get_root(), null, (dlg, res) => {
+                try {
+                    const f = dlg.select_folder_finish(res);
+                    if (f) {
+                        const path = f.get_path();
+                        settings.set_string('notes-folder', path);
+                        folderRow.set_subtitle(path);
+                    }
+                } catch (_) {}
+            });
+        });
+        folderRow.add_suffix(browseBtn);
+        group.add(folderRow);
+
+        const openBtn = new Adw.ActionRow({title: 'Open notes folder'});
+        const open = new Gtk.Button({label: 'Open', css_classes: ['pill']});
+        open.connect('clicked', () => {
+            Gio.AppInfo.launch_default_for_uri(
+                Gio.File.new_for_path(settings.get_string('notes-folder')).get_uri(), null);
+        });
+        openBtn.add_suffix(open);
+        group.add(openBtn);
+
         page.add(group);
         return page;
     }

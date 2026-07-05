@@ -70,6 +70,7 @@ class Notch extends St.Widget {
             claude:        new ClaudeUsage(this._settings),
         };
         this._modules.notes.setGrabActor(this);
+        this._modules.notes.connect('updated', () => { if (this._expanded && this._activeTab === 'notes') this._renderTab(); });
         /* show pomodoro mini label at startup with idle styling */
         this._pomoUpdateId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             this._pomoUpdateId = 0;
@@ -305,7 +306,7 @@ class Notch extends St.Widget {
         this._expandedLayer.add_child(this._content);
 
         this._tabButtons = {};
-        const tabIds = ['system', 'calendar', 'tasks', 'notes', 'weather', 'pomodoro', 'stats', 'quick', 'claude'];
+        const tabIds = ['system', 'claude', 'calendar', 'tasks', 'notes', 'weather', 'pomodoro', 'stats', 'quick'];
         for (const id of tabIds) {
             const btn = new St.Button({
                 style_class: 'nexnotch-tab',
@@ -338,7 +339,7 @@ class Notch extends St.Widget {
         return {
             system: 'System', calendar: 'Cal', tasks: 'Tasks',
             notes:  'Notes',  weather:  'Weather', pomodoro: 'Timer',
-            stats:  'Stats',  quick: 'Quick', claude: 'Claude',
+            stats:  'Stats',  quick: 'Quick', claude: 'Limits',
         }[id] ?? id;
     }
 
@@ -400,6 +401,8 @@ class Notch extends St.Widget {
         this._clearHoverTimeout();
         this._clearCollapseTimeout();
         this._stopClock();
+        if (this._wakeSigId && this._wakeProxy) { try { this._wakeProxy.disconnectSignal(this._wakeSigId); } catch (_) {} this._wakeSigId = 0; }
+        this._wakeProxy = null;
         if (this._pomoUpdateId) { GLib.source_remove(this._pomoUpdateId); this._pomoUpdateId = 0; }
         if (this._peekTimer)    { GLib.source_remove(this._peekTimer);    this._peekTimer    = 0; }
         for (const id of this._bannerKillTimers ?? []) {
@@ -426,6 +429,27 @@ class Notch extends St.Widget {
     _startClock() {
         this._updateClocks();
         this._scheduleClockTick();
+        this._watchWake();
+    }
+
+    /* GLib timers are driven by the monotonic clock, which stops advancing
+       during suspend. On resume the pending tick fires late and shows a
+       stale time for the rest of that period (up to a full minute) — this
+       is the "clock is 1-2 min behind" symptom on laptops. Force an
+       immediate resync when logind reports the system woke up. */
+    _watchWake() {
+        try {
+            this._wakeProxy = new Gio.DBusProxy({
+                g_connection: Gio.DBus.system,
+                g_name: 'org.freedesktop.login1',
+                g_object_path: '/org/freedesktop/login1',
+                g_interface_name: 'org.freedesktop.login1.Manager',
+            });
+            this._wakeProxy.init(null);
+            this._wakeSigId = this._wakeProxy.connectSignal('PrepareForSleep', (_p, _s, [starting]) => {
+                if (!starting) { this._stopClock(); this._updateClocks(); this._scheduleClockTick(); }
+            });
+        } catch (e) { logError(e, 'nexnotch:wake-watch'); }
     }
 
     _scheduleClockTick() {
@@ -798,6 +822,13 @@ class Notch extends St.Widget {
         if (this._pomoLabel.visible !== wasVisible) this._resizeCollapsed();
     }
 
+    _dndActive() {
+        try {
+            this._dndSettings ??= new Gio.Settings({schema_id: 'org.gnome.desktop.notifications'});
+            return !this._dndSettings.get_boolean('show-banners');
+        } catch (_) { return false; }
+    }
+
     _updatePrivacyIndicator() {
         /* no-op — privacy dot removed from collapsed pill per user request.
            Mic/Camera status is still visible in the Quick tab pills. */
@@ -806,6 +837,7 @@ class Notch extends St.Widget {
     _peekNotification(source, notif) {
         if (this._expanded) return;
         if (!this._settings.get_boolean('show-notifications')) return;   /* master off */
+        if (this._dndActive()) return;   /* respect GNOME's Do Not Disturb */
         this._dismissPeek(true);
         if (this._settings.get_boolean('notif-suppress-native')) {
             this._killBanner(0); this._killBanner(60); this._killBanner(220);

@@ -132,18 +132,45 @@
 
 /* ——— notes ——— */
 .nexnotch-notes { spacing: 8px; }
+.nexnotch-notes-header { spacing: 8px; padding-bottom: 2px; }
+.nexnotch-notes-heading { color: rgba(255, 255, 255, 0.7); font-size: 11px; font-weight: 700; letter-spacing: 0.4px; }
+.nexnotch-notes-new {
+    color: rgba(255, 255, 255, 0.85); font-size: 10px; font-weight: 700;
+    padding: 3px 12px; border-radius: 999px;
+    background-color: rgba(120, 170, 255, 0.22); border: 0;
+}
+.nexnotch-notes-new:hover { background-color: rgba(120, 170, 255, 0.35); color: white; }
+
+.nexnotch-notes-scroll { max-height: 300px; }
+.nexnotch-notes-list { spacing: 10px; }
+.nexnotch-notes-card {
+    spacing: 6px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+}
+.nexnotch-notes-title-entry {
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2px 2px 6px 2px;
+    color: white;
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+}
 .nexnotch-notes-entry {
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 10px 12px;
+    background-color: transparent;
+    border: 0;
+    padding: 6px 2px;
     color: rgba(255, 255, 255, 0.92);
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 12px;
-    min-height: 140px;
+    min-height: 90px;
 }
-.nexnotch-notes-footer { padding-top: 4px; spacing: 8px; }
-.nexnotch-notes-info   { color: rgba(255, 255, 255, 0.4); font-size: 10px; }
+.nexnotch-notes-footer { padding-top: 2px; spacing: 8px; }
+.nexnotch-notes-info   { color: rgba(255, 255, 255, 0.35); font-size: 9px; }
 .nexnotch-notes-clear  {
     color: rgba(255, 255, 255, 0.7); font-size: 10px; padding: 3px 10px;
     border-radius: 999px; background-color: rgba(255, 255, 255, 0.06); border: 0;
@@ -177,7 +204,7 @@
 .nexnotch-pomo { spacing: 6px; padding: 8px 0; }
 .nexnotch-pomo-big {
     color: white; font-family: "SF Pro Display", "Inter", sans-serif;
-    font-size: 42px; font-weight: 500; letter-spacing: -1px;
+    font-size: 26px; font-weight: 600; letter-spacing: -0.5px;
     font-feature-settings: "tnum";
 }
 .nexnotch-pomo-state { color: rgba(140, 220, 140, 0.85); font-size: 11px; font-weight: 600; letter-spacing: 0.4px; }
@@ -463,6 +490,42 @@
 
 /* ——— calendar / tasks ——— */
 
+.nexnotch-cal-month {
+    spacing: 4px;
+    padding: 2px 2px 10px 2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 8px;
+}
+.nexnotch-cal-month-title {
+    color: rgba(255, 255, 255, 0.85);
+    font-family: "SF Pro Text", "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding-bottom: 4px;
+}
+.nexnotch-cal-dow-cell {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 9px;
+    font-weight: 700;
+}
+.nexnotch-cal-week { spacing: 0; }
+.nexnotch-cal-day-cell {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 0;
+    border-radius: 999px;
+}
+.nexnotch-cal-day-cell.has-event { color: rgba(120, 170, 255, 0.95); font-weight: 700; }
+.nexnotch-cal-day-cell.today {
+    background-color: rgba(120, 170, 255, 0.28);
+    color: white;
+    font-weight: 700;
+}
+
+.nexnotch-cal-cols { spacing: 14px; }
+.nexnotch-cal-col { spacing: 0; }
+
 .nexnotch-cal-row, .nexnotch-task-row {
     padding: 4px 2px;
     spacing: 10px;
@@ -477,7 +540,7 @@
     font-family: "SF Pro Text", "Inter", sans-serif;
     font-size: 10px;
     font-weight: 700;
-    min-width: 88px;
+    min-width: 70px;
     letter-spacing: 0.3px;
 }
 .nexnotch-cal-title {
@@ -487,16 +550,30 @@
     font-weight: 500;
 }
 
+.nexnotch-task-row.done .nexnotch-task-title { color: rgba(255, 255, 255, 0.4); text-decoration: line-through; }
 .nexnotch-task-check {
     color: rgba(140, 220, 140, 0.9);
     min-width: 18px;
     font-size: 13px;
+    background-color: transparent;
+    border: 0;
+}
+.nexnotch-task-title {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11px;
+    font-weight: 500;
+}
+.nexnotch-task-list-tag {
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 9px;
+    font-weight: 600;
 }
 .nexnotch-task-due {
     color: rgba(255, 200, 120, 0.8);
     font-size: 10px;
     font-weight: 600;
 }
+.nexnotch-task-scroll { max-height: 260px; }
 
 .nexnotch-empty {
     color: rgba(255, 255, 255, 0.42);
@@ -593,3 +670,22 @@
     color: rgba(255, 255, 255, 0.42);
     font-size: 10px;
 }
+
+.nexnotch-claude-refresh-row {
+    padding-top: 8px;
+    spacing: 8px;
+}
+.nexnotch-claude-refresh-label {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 9px;
+}
+.nexnotch-claude-refresh-btn {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 0;
+}
+.nexnotch-claude-refresh-btn:hover { background-color: rgba(255, 255, 255, 0.14); color: white; }

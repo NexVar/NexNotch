@@ -264,7 +264,9 @@ export const CalendarPeek = GObject.registerClass({
 
     _renderCalendar() {
         const box = new St.BoxLayout({style_class: 'nexnotch-cal', vertical: true, x_expand: true, y_expand: true});
-        const events = this._filterEvents(this._events);
+        box.add_child(this._monthGrid());
+
+        const events = this._filterEvents(this._events).filter(ev => ev.end * 1000 >= Date.now());
         if (events.length === 0) {
             box.add_child(new St.Label({
                 text: 'No upcoming events',
@@ -273,13 +275,67 @@ export const CalendarPeek = GObject.registerClass({
             }));
             return box;
         }
-        for (const ev of events.slice(0, 7)) {
-            const row = new St.BoxLayout({style_class: 'nexnotch-cal-row'});
-            row.add_child(new St.Label({text: this._formatTime(ev), style_class: 'nexnotch-cal-when'}));
-            row.add_child(new St.Label({text: ev.summary, style_class: 'nexnotch-cal-title', x_expand: true}));
-            box.add_child(row);
-        }
+
+        const list = events.slice(0, 16);
+        const half = Math.ceil(list.length / 2);
+        const cols = new St.BoxLayout({style_class: 'nexnotch-cal-cols', x_expand: true});
+        const left  = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-cal-col'});
+        const right = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-cal-col'});
+        list.slice(0, half).forEach(ev => left.add_child(this._eventRow(ev)));
+        list.slice(half).forEach(ev => right.add_child(this._eventRow(ev)));
+        cols.add_child(left);
+        cols.add_child(right);
+        box.add_child(cols);
         return box;
+    }
+
+    _eventRow(ev) {
+        const row = new St.BoxLayout({style_class: 'nexnotch-cal-row'});
+        row.add_child(new St.Label({text: this._formatTime(ev), style_class: 'nexnotch-cal-when'}));
+        row.add_child(new St.Label({text: ev.summary, style_class: 'nexnotch-cal-title', x_expand: true}));
+        return row;
+    }
+
+    _monthGrid() {
+        const now = new Date();
+        const year = now.getFullYear(), month = now.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        /* Monday-first weekday index for day 1 */
+        const startWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+
+        const eventDays = new Set();
+        for (const ev of this._filterEvents(this._events)) {
+            const d = new Date(ev.start * 1000);
+            if (d.getFullYear() === year && d.getMonth() === month) eventDays.add(d.getDate());
+        }
+
+        const grid = new St.BoxLayout({style_class: 'nexnotch-cal-month', vertical: true});
+        grid.add_child(new St.Label({
+            text: now.toLocaleDateString([], {month: 'long', year: 'numeric'}),
+            style_class: 'nexnotch-cal-month-title',
+            x_align: Clutter.ActorAlign.CENTER,
+        }));
+
+        const dow = new St.BoxLayout({style_class: 'nexnotch-cal-dow', x_expand: true});
+        for (const d of ['M', 'T', 'W', 'T', 'F', 'S', 'S']) {
+            dow.add_child(new St.Label({text: d, style_class: 'nexnotch-cal-dow-cell', x_align: Clutter.ActorAlign.CENTER, x_expand: true}));
+        }
+        grid.add_child(dow);
+
+        let row = new St.BoxLayout({style_class: 'nexnotch-cal-week', x_expand: true});
+        for (let i = 0; i < startWeekday; i++) row.add_child(new St.Widget({x_expand: true}));
+        let col = startWeekday;
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = day === now.getDate();
+            let cls = 'nexnotch-cal-day-cell';
+            if (isToday) cls += ' today';
+            if (eventDays.has(day)) cls += ' has-event';
+            row.add_child(new St.Label({text: String(day), style_class: cls, x_align: Clutter.ActorAlign.CENTER, x_expand: true}));
+            col++;
+            if (col === 7) { grid.add_child(row); row = new St.BoxLayout({style_class: 'nexnotch-cal-week', x_expand: true}); col = 0; }
+        }
+        if (col > 0) grid.add_child(row);
+        return grid;
     }
 
     _renderTasks() {
@@ -315,38 +371,67 @@ export const CalendarPeek = GObject.registerClass({
             return box;
         }
 
-        /* if more than one list, show segmented tab bar */
+        /* segmented tab bar: "All" plus one tab per list, scrollable-ish
+           row when there are many lists */
         if (lists.length > 1) {
-            if (!lists.includes(this._activeTaskList)) this._activeTaskList = lists[0];
+            if (!this._activeTaskList) this._activeTaskList = 'All';
+            if (this._activeTaskList !== 'All' && !lists.includes(this._activeTaskList)) this._activeTaskList = 'All';
+
             const listBar = new St.BoxLayout({style_class: 'nexnotch-task-lists', x_expand: true});
-            for (const name of lists) {
+            const mkTab = (name, label) => {
                 const active = name === this._activeTaskList;
-                const count = byList.get(name).length;
                 const btn = new St.Button({
                     style_class: 'nexnotch-task-list-tab' + (active ? ' active' : ''),
-                    label: `${name} · ${count}`,
+                    label,
                     x_expand: true,
                 });
                 btn.connect('clicked', () => { this._activeTaskList = name; this.emit('updated'); });
                 listBar.add_child(btn);
-            }
+            };
+            mkTab('All', `All · ${tasks.length}`);
+            for (const name of lists) mkTab(name, `${name} · ${byList.get(name).length}`);
             box.add_child(listBar);
 
-            const items = byList.get(this._activeTaskList) ?? [];
-            for (const t of items.slice(0, 8)) box.add_child(this._taskRow(t));
+            const items = this._activeTaskList === 'All' ? tasks : (byList.get(this._activeTaskList) ?? []);
+            const scroll = new St.ScrollView({style_class: 'nexnotch-task-scroll', x_expand: true, y_expand: true});
+            const inner = new St.BoxLayout({vertical: true, x_expand: true});
+            for (const t of items.slice(0, 30)) inner.add_child(this._taskRow(t, this._activeTaskList === 'All'));
+            scroll.set_child(inner);
+            box.add_child(scroll);
         } else {
             const items = byList.get(lists[0]) ?? [];
-            for (const t of items.slice(0, 9)) box.add_child(this._taskRow(t));
+            for (const t of items.slice(0, 12)) box.add_child(this._taskRow(t, false));
         }
         return box;
     }
 
-    _taskRow(t) {
-        const row = new St.BoxLayout({style_class: 'nexnotch-task-row'});
-        row.add_child(new St.Label({text: t.done ? '☑' : '☐', style_class: 'nexnotch-task-check'}));
-        row.add_child(new St.Label({text: t.title, x_expand: true}));
+    _taskRow(t, showList) {
+        const row = new St.BoxLayout({style_class: 'nexnotch-task-row' + (t.done ? ' done' : '')});
+        const check = new St.Button({style_class: 'nexnotch-task-check', label: t.done ? '☑' : '☐'});
+        check.connect('clicked', () => this.toggleTask(t));
+        row.add_child(check);
+        const col = new St.BoxLayout({vertical: true, x_expand: true});
+        col.add_child(new St.Label({text: t.title, style_class: 'nexnotch-task-title'}));
+        if (showList && t.list) col.add_child(new St.Label({text: t.list, style_class: 'nexnotch-task-list-tag'}));
+        row.add_child(col);
         if (t.due) row.add_child(new St.Label({text: this._formatDue(t.due), style_class: 'nexnotch-task-due'}));
         return row;
+    }
+
+    toggleTask(t) {
+        const entry = this._taskClients.find(c => c.source.get_display_name() === t.list);
+        if (!entry) return;
+        try {
+            entry.client.get_object(t.id, null, this._cancellable, (_, res) => {
+                try {
+                    const icalComp = entry.client.get_object_finish(res);
+                    icalComp.set_status(t.done ? 'NEEDS-ACTION' : 'COMPLETED');
+                    entry.client.modify_object(icalComp, _ECal.ObjModType.ALL, this._cancellable, () => {
+                        this._refreshTaskClient(entry.source, entry.client);
+                    });
+                } catch (e) { logError(e, 'nexnotch:tasks:toggle'); }
+            });
+        } catch (e) { logError(e, 'nexnotch:tasks:toggle'); }
     }
 
     _formatTime(ev) {

@@ -108,6 +108,7 @@ export const ClaudeUsage = GObject.registerClass({
             box.add_child(new St.Label({
                 text: this._lastError, style_class: 'nexnotch-empty', x_align: Clutter.ActorAlign.CENTER,
             }));
+            box.add_child(this._refreshRow());
             return box;
         }
         if (!this._data) {
@@ -123,8 +124,23 @@ export const ClaudeUsage = GObject.registerClass({
         if (fiveHour) rings.add_child(this._ring('Session (5h)', fiveHour.utilization, fiveHour.resets_at));
         if (sevenDay) rings.add_child(this._ring('Weekly', sevenDay.utilization, sevenDay.resets_at));
         box.add_child(rings);
+        box.add_child(this._refreshRow());
 
         return box;
+    }
+
+    _refreshRow() {
+        const row = new St.BoxLayout({style_class: 'nexnotch-claude-refresh-row', x_expand: true});
+        const minutes = Math.max(1, this._settings.get_int('claude-usage-refresh'));
+        row.add_child(new St.Label({
+            text: `Auto-refreshes every ${minutes} min`,
+            style_class: 'nexnotch-claude-refresh-label',
+            x_expand: true,
+        }));
+        const btn = new St.Button({style_class: 'nexnotch-claude-refresh-btn', label: '↻ Refresh', can_focus: true});
+        btn.connect('clicked', () => { btn.label = 'Refreshing…'; this._fetch(); });
+        row.add_child(btn);
+        return row;
     }
 
     _ring(label, pct, resetsAt) {

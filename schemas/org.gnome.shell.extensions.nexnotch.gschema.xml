@@ -51,9 +51,9 @@
     </key>
 
     <!-- notes -->
-    <key name="notes-content" type="s">
-      <default>""</default>
-      <summary>Notes tab raw markdown content</summary>
+    <key name="notes-folder" type="s">
+      <default>"/home/mert/Yazılım/MertProjeler/NexNotchNotes"</default>
+      <summary>Folder where notes are saved as markdown files, one dated subfolder per day</summary>
     </key>
 
     <!-- weather -->

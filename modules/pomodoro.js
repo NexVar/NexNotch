@@ -184,6 +184,12 @@ export const Pomodoro = GObject.registerClass({
         }
     }
 
+    adjustMinutes(delta) {
+        if (this._state === 'idle') return;
+        this._remain = Math.max(1, this._remain + delta * 60);
+        this.emit('tick');
+    }
+
     isActive() { return this._state !== 'idle' && this._state !== 'paused'; }
     getState() { return this._state; }
     getRemain() { return this._remain; }
@@ -215,12 +221,24 @@ export const Pomodoro = GObject.registerClass({
         }
         box.add_child(presetRow);
 
+        const RING_SIZE = 128;
+        const ringWrap = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            width: RING_SIZE, height: RING_SIZE,
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+        const pct = this._elapsedPct();
+        const area = new St.DrawingArea({style_class: 'nexnotch-pomo-ring', width: RING_SIZE, height: RING_SIZE});
+        area.connect('repaint', () => this._paintRing(area, pct, RING_SIZE));
+        ringWrap.add_child(area);
         const big = new St.Label({
             text: this._state === 'idle' ? '—:—' : this.formatRemain(),
             style_class: 'nexnotch-pomo-big',
             x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
         });
-        box.add_child(big);
+        ringWrap.add_child(big);
+        box.add_child(ringWrap);
 
         const stateLabel = new St.Label({
             text: this._stateLabel(),
@@ -249,11 +267,59 @@ export const Pomodoro = GObject.registerClass({
         });
         const resetBtn = new St.Button({style_class: 'nexnotch-pomo-btn', label: 'Reset'});
         resetBtn.connect('clicked', () => this.reset());
+        if (this._state !== 'idle') {
+            const minusBtn = new St.Button({style_class: 'nexnotch-pomo-btn', label: '−1m', accessible_name: 'Subtract one minute'});
+            minusBtn.connect('clicked', () => this.adjustMinutes(-1));
+            btns.add_child(minusBtn);
+        }
         btns.add_child(startBtn);
+        if (this._state !== 'idle') {
+            const plusBtn = new St.Button({style_class: 'nexnotch-pomo-btn', label: '+1m', accessible_name: 'Add one minute'});
+            plusBtn.connect('clicked', () => this.adjustMinutes(1));
+            btns.add_child(plusBtn);
+        }
         btns.add_child(resetBtn);
         box.add_child(btns);
 
         return box;
+    }
+
+    _totalForState() {
+        const {work, brk} = this._activePreset();
+        if (this._state === 'work')      return work * 60;
+        if (this._state === 'longbreak') return this._settings.get_int('pomodoro-long') * 60;
+        if (this._state === 'break')     return brk * 60;
+        return 0;
+    }
+
+    _elapsedPct() {
+        const total = this._totalForState();
+        if (total <= 0) return 0;
+        return Math.max(0, Math.min(100, 100 - (this._remain / total) * 100));
+    }
+
+    _paintRing(area, pct, size) {
+        const cr = area.get_context();
+        const thick = 7;
+        const cx = size / 2, cy = size / 2, r = size / 2 - thick / 2;
+
+        cr.setLineWidth(thick);
+        try { cr.setLineCap(1); } catch (_) {} // round caps
+
+        cr.setSourceRGBA(1, 1, 1, 0.10);
+        cr.arc(cx, cy, r, 0, 2 * Math.PI);
+        cr.stroke();
+
+        const frac = pct / 100;
+        if (frac > 0) {
+            const breakState = this._state === 'break' || this._state === 'longbreak';
+            const color = breakState ? [0.47, 0.85, 0.6] : [0.47, 0.67, 1];
+            cr.setSourceRGBA(color[0], color[1], color[2], 0.95);
+            const start = -Math.PI / 2;
+            cr.arc(cx, cy, r, start, start + frac * 2 * Math.PI);
+            cr.stroke();
+        }
+        cr.$dispose();
     }
 
     _stateLabel() {
