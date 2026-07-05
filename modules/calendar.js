@@ -61,6 +61,8 @@ export const CalendarPeek = GObject.registerClass({
         this._tasksTimer = 0;
         this._soup = new Soup.Session();
         this._soup.set_timeout(15);
+        this._listMeta = new Map();
+        this._composeOpen = false;
     }
 
     start() {
@@ -211,6 +213,7 @@ export const CalendarPeek = GObject.registerClass({
                     const lists = await this._apiGet(token, `${TASKS_API}/users/@me/lists`);
                     for (const l of lists.items ?? []) {
                         if (this._stopped) return;
+                        this._listMeta.set(l.id, {email: acct.email, title: l.title});
                         const data = await this._apiGet(token, `${TASKS_API}/lists/${l.id}/tasks?showCompleted=false&showHidden=false`);
                         for (const t of data.items ?? []) {
                             if (t.status === 'completed') continue;
@@ -265,6 +268,22 @@ export const CalendarPeek = GObject.registerClass({
         } catch (e) { logError(e, 'nexnotch:tasks:toggle'); }
     }
 
+    async addTask(listId, title, notes) {
+        const meta = this._listMeta.get(listId);
+        if (!meta || !title.trim()) return;
+        try {
+            const token = await getAccessToken(meta.email);
+            const msg = Soup.Message.new('POST', `${TASKS_API}/lists/${listId}/tasks`);
+            msg.request_headers.append('Authorization', `Bearer ${token}`);
+            msg.request_headers.append('Content-Type', 'application/json');
+            const body = JSON.stringify({title: title.trim(), notes: notes.trim() || undefined});
+            msg.set_request_body_from_bytes('application/json', new GLib.Bytes(new TextEncoder().encode(body)));
+            this._soup.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null, () => {
+                this._refreshTasks();
+            });
+        } catch (e) { logError(e, 'nexnotch:tasks:add'); }
+    }
+
     render(tab) {
         if (tab === 'tasks') return this._renderTasks();
         return this._renderCalendar();
@@ -272,28 +291,27 @@ export const CalendarPeek = GObject.registerClass({
 
     _renderCalendar() {
         const box = new St.BoxLayout({style_class: 'nexnotch-cal', vertical: true, x_expand: true, y_expand: true});
-        box.add_child(this._monthGrid());
 
+        const layout = new St.BoxLayout({style_class: 'nexnotch-cal-layout', x_expand: true, y_expand: true});
+        layout.add_child(this._monthGrid());
+
+        const agenda = new St.BoxLayout({vertical: true, x_expand: true, y_expand: true, style_class: 'nexnotch-cal-agenda'});
         const events = this._filterEvents(this._events).filter(ev => ev.end * 1000 >= Date.now());
         if (events.length === 0) {
-            box.add_child(new St.Label({
+            agenda.add_child(new St.Label({
                 text: 'No upcoming events',
                 style_class: 'nexnotch-empty',
                 x_align: Clutter.ActorAlign.CENTER,
             }));
-            return box;
+        } else {
+            const scroll = new St.ScrollView({style_class: 'nexnotch-cal-agenda-scroll', x_expand: true, y_expand: true});
+            const inner = new St.BoxLayout({vertical: true, x_expand: true});
+            for (const ev of events.slice(0, 24)) inner.add_child(this._eventRow(ev));
+            scroll.set_child(inner);
+            agenda.add_child(scroll);
         }
-
-        const list = events.slice(0, 16);
-        const half = Math.ceil(list.length / 2);
-        const cols = new St.BoxLayout({style_class: 'nexnotch-cal-cols', x_expand: true});
-        const left  = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-cal-col'});
-        const right = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'nexnotch-cal-col'});
-        list.slice(0, half).forEach(ev => left.add_child(this._eventRow(ev)));
-        list.slice(half).forEach(ev => right.add_child(this._eventRow(ev)));
-        cols.add_child(left);
-        cols.add_child(right);
-        box.add_child(cols);
+        layout.add_child(agenda);
+        box.add_child(layout);
         return box;
     }
 
@@ -306,10 +324,13 @@ export const CalendarPeek = GObject.registerClass({
 
     _monthGrid() {
         const now = new Date();
-        const year = now.getFullYear(), month = now.getMonth();
+        const offset = this._calMonthOffset ?? 0;
+        const viewDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        const year = viewDate.getFullYear(), month = viewDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         /* Monday-first weekday index for day 1 */
         const startWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+        const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
         const eventDays = new Set();
         for (const ev of this._filterEvents(this._events)) {
@@ -318,11 +339,21 @@ export const CalendarPeek = GObject.registerClass({
         }
 
         const grid = new St.BoxLayout({style_class: 'nexnotch-cal-month', vertical: true});
-        grid.add_child(new St.Label({
-            text: now.toLocaleDateString([], {month: 'long', year: 'numeric'}),
+
+        const header = new St.BoxLayout({style_class: 'nexnotch-cal-month-header', x_expand: true});
+        const prevBtn = new St.Button({style_class: 'nexnotch-cal-month-nav', label: '‹', accessible_name: 'Previous month'});
+        prevBtn.connect('clicked', () => { this._calMonthOffset = offset - 1; this.emit('updated'); });
+        header.add_child(prevBtn);
+        header.add_child(new St.Label({
+            text: viewDate.toLocaleDateString([], {month: 'long', year: 'numeric'}),
             style_class: 'nexnotch-cal-month-title',
+            x_expand: true,
             x_align: Clutter.ActorAlign.CENTER,
         }));
+        const nextBtn = new St.Button({style_class: 'nexnotch-cal-month-nav', label: '›', accessible_name: 'Next month'});
+        nextBtn.connect('clicked', () => { this._calMonthOffset = offset + 1; this.emit('updated'); });
+        header.add_child(nextBtn);
+        grid.add_child(header);
 
         const dow = new St.BoxLayout({style_class: 'nexnotch-cal-dow', x_expand: true});
         for (const d of ['M', 'T', 'W', 'T', 'F', 'S', 'S']) {
@@ -334,10 +365,11 @@ export const CalendarPeek = GObject.registerClass({
         for (let i = 0; i < startWeekday; i++) row.add_child(new St.Widget({x_expand: true}));
         let col = startWeekday;
         for (let day = 1; day <= daysInMonth; day++) {
-            const isToday = day === now.getDate();
+            const isToday = isCurrentMonth && day === now.getDate();
+            const hasEvent = eventDays.has(day);
             let cls = 'nexnotch-cal-day-cell';
+            if (hasEvent) cls += ' has-event'; else cls += ' no-event';
             if (isToday) cls += ' today';
-            if (eventDays.has(day)) cls += ' has-event';
             row.add_child(new St.Label({text: String(day), style_class: cls, x_align: Clutter.ActorAlign.CENTER, x_expand: true}));
             col++;
             if (col === 7) { grid.add_child(row); row = new St.BoxLayout({style_class: 'nexnotch-cal-week', x_expand: true}); col = 0; }
@@ -360,6 +392,10 @@ export const CalendarPeek = GObject.registerClass({
             if (!byList.has(key)) byList.set(key, []);
             byList.get(key).push(t);
         }
+        /* known lists come from _listMeta (populated even for empty lists)
+           so "+ Add" still works before any task exists */
+        const knownNames = new Set(Array.from(this._listMeta.values()).map(m => m.title));
+        for (const name of knownNames) if (!byList.has(name)) byList.set(name, []);
         const lists = Array.from(byList.keys()).sort();
 
         if (lists.length === 0) {
@@ -370,6 +406,8 @@ export const CalendarPeek = GObject.registerClass({
             }));
             return box;
         }
+
+        let targetListId = null;
 
         /* segmented tab bar: "All" plus one tab per list, scrollable-ish
            row when there are many lists */
@@ -385,24 +423,74 @@ export const CalendarPeek = GObject.registerClass({
                     label,
                     x_expand: true,
                 });
-                btn.connect('clicked', () => { this._activeTaskList = name; this.emit('updated'); });
+                btn.connect('clicked', () => { this._activeTaskList = name; this._composeOpen = false; this.emit('updated'); });
                 listBar.add_child(btn);
             };
             mkTab('All', `All · ${tasks.length}`);
             for (const name of lists) mkTab(name, `${name} · ${byList.get(name).length}`);
             box.add_child(listBar);
 
+            if (this._activeTaskList !== 'All') {
+                for (const [id, meta] of this._listMeta) if (meta.title === this._activeTaskList) targetListId = id;
+            }
+
+            box.add_child(this._addTaskRow(targetListId));
+
             const items = this._activeTaskList === 'All' ? tasks : (byList.get(this._activeTaskList) ?? []);
             const scroll = new St.ScrollView({style_class: 'nexnotch-task-scroll', x_expand: true, y_expand: true});
             const inner = new St.BoxLayout({vertical: true, x_expand: true});
+            if (items.length === 0) {
+                inner.add_child(new St.Label({text: 'No pending tasks', style_class: 'nexnotch-empty', x_align: Clutter.ActorAlign.CENTER}));
+            }
             for (const t of items.slice(0, 30)) inner.add_child(this._taskRow(t, this._activeTaskList === 'All'));
             scroll.set_child(inner);
             box.add_child(scroll);
         } else {
+            for (const [id, meta] of this._listMeta) if (meta.title === lists[0]) targetListId = id;
+            box.add_child(this._addTaskRow(targetListId));
             const items = byList.get(lists[0]) ?? [];
+            if (items.length === 0) {
+                box.add_child(new St.Label({text: 'No pending tasks', style_class: 'nexnotch-empty', x_align: Clutter.ActorAlign.CENTER}));
+            }
             for (const t of items.slice(0, 12)) box.add_child(this._taskRow(t, false));
         }
         return box;
+    }
+
+    _addTaskRow(listId) {
+        const wrap = new St.BoxLayout({vertical: true, style_class: 'nexnotch-task-add-wrap', x_expand: true});
+
+        if (!this._composeOpen) {
+            const btn = new St.Button({style_class: 'nexnotch-task-add-btn', label: '+ Add task', can_focus: true});
+            btn.set_reactive(!!listId);
+            if (!listId) btn.add_style_class_name('disabled');
+            btn.connect('clicked', () => { if (!listId) return; this._composeOpen = true; this.emit('updated'); });
+            wrap.add_child(btn);
+            return wrap;
+        }
+
+        const card = new St.BoxLayout({vertical: true, style_class: 'nexnotch-task-compose', x_expand: true});
+        const titleEntry = new St.Entry({style_class: 'nexnotch-task-compose-title', hint_text: 'Task title', x_expand: true, can_focus: true});
+        const notesEntry = new St.Entry({style_class: 'nexnotch-task-compose-notes', hint_text: 'Description (optional)', x_expand: true, can_focus: true});
+        card.add_child(titleEntry);
+        card.add_child(notesEntry);
+
+        const btnRow = new St.BoxLayout({style_class: 'nexnotch-task-compose-btns', x_expand: true});
+        const cancel = new St.Button({style_class: 'nexnotch-task-compose-cancel', label: 'Cancel'});
+        cancel.connect('clicked', () => { this._composeOpen = false; this.emit('updated'); });
+        const add = new St.Button({style_class: 'nexnotch-task-compose-submit', label: 'Add'});
+        add.connect('clicked', () => {
+            const title = titleEntry.get_text();
+            if (!title.trim()) return;
+            this.addTask(listId, title, notesEntry.get_text());
+            this._composeOpen = false;
+            this.emit('updated');
+        });
+        btnRow.add_child(cancel);
+        btnRow.add_child(add);
+        card.add_child(btnRow);
+        wrap.add_child(card);
+        return wrap;
     }
 
     _taskRow(t, showList) {

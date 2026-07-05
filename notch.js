@@ -294,10 +294,14 @@ class Notch extends St.Widget {
 
         this._header = new St.BoxLayout({style_class: 'nexnotch-header', vertical: false});
         this._bigClock  = new St.Label({text: '', style_class: 'nexnotch-big-clock'});
-        this._dateLabel = new St.Label({text: '', style_class: 'nexnotch-date'});
+        const dateCol = new St.BoxLayout({vertical: true, x_align: Clutter.ActorAlign.END, y_align: Clutter.ActorAlign.CENTER});
+        this._dateLabel  = new St.Label({text: '', style_class: 'nexnotch-date', x_align: Clutter.ActorAlign.END});
+        this._monthLabel = new St.Label({text: '', style_class: 'nexnotch-date-month', x_align: Clutter.ActorAlign.END});
+        dateCol.add_child(this._dateLabel);
+        dateCol.add_child(this._monthLabel);
         this._header.add_child(this._bigClock);
         this._header.add_child(new St.Widget({x_expand: true}));
-        this._header.add_child(this._dateLabel);
+        this._header.add_child(dateCol);
         this._expandedLayer.add_child(this._header);
 
         this._tabs = new St.BoxLayout({style_class: 'nexnotch-tabs', vertical: false});
@@ -487,7 +491,8 @@ class Notch extends St.Widget {
         } else {
             this._dateLabelC.visible = false;
         }
-        this._dateLabel.text = now.toLocaleDateString([], {weekday: 'long', day: 'numeric', month: 'long'});
+        this._dateLabel.text  = now.toLocaleDateString([], {weekday: 'long', day: 'numeric'});
+        this._monthLabel.text = now.toLocaleDateString([], {month: 'long'});
     }
 
     _formatCompactDate(d) {

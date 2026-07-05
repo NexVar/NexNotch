@@ -53,6 +53,12 @@ export const Notes = GObject.registerClass({
 
     _newId() { return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
 
+    _isPlainEnter(event) {
+        const sym = event.get_key_symbol();
+        if (sym !== Clutter.KEY_Return && sym !== Clutter.KEY_KP_Enter) return false;
+        return !(event.get_state() & Clutter.ModifierType.SHIFT_MASK);
+    }
+
     _notesDir() {
         return this._settings.get_string('notes-folder') || DEFAULT_NOTES_DIR;
     }
@@ -117,6 +123,21 @@ export const Notes = GObject.registerClass({
         return box;
     }
 
+    /* Top-chrome actors don't win key focus on their own just by being
+       clicked — the shell doesn't route pointer clicks to key focus for
+       actors outside the normal window/panel actor tree. We have to grab
+       a modal (like Main.runDialog does) and explicitly request key focus
+       on click, or clicking into the entry does nothing. */
+    _wireFocus(clutterText) {
+        const request = () => {
+            this._pushGrab();
+            try { global.stage.set_key_focus(clutterText); clutterText.grab_key_focus(); } catch (_) {}
+        };
+        clutterText.connect('button-press-event', () => { request(); return Clutter.EVENT_PROPAGATE; });
+        clutterText.connect('key-focus-in', () => this._onEntryFocusIn());
+        clutterText.connect('key-focus-out', () => this._onEntryFocusOut());
+    }
+
     _draftCard(draft) {
         const card = new St.BoxLayout({style_class: 'nexnotch-notes-card', vertical: true, x_expand: true});
 
@@ -125,23 +146,42 @@ export const Notes = GObject.registerClass({
             hint_text: 'Title (optional)',
             x_expand: true,
             can_focus: true,
+            reactive: true,
         });
-        titleEntry.set_text(draft.title);
         const titleText = titleEntry.get_clutter_text();
+        titleText.set_single_line_mode(false);
+        titleText.set_activatable(false);
+        titleText.set_editable(true);
+        titleText.set_line_wrap(true);
+        titleText.set_line_wrap_mode(2);
+        titleText.set_selectable(true);
+        titleText.set_text(draft.title);
         titleText.connect('text-changed', () => {
             draft.title = titleText.get_text();
             this._debouncedSave(draft);
         });
-        titleText.connect('key-focus-in', () => this._onEntryFocusIn());
-        titleText.connect('key-focus-out', () => this._onEntryFocusOut());
+        this._wireFocus(titleText);
+        titleText.connect('key-press-event', (_a, event) => {
+            if (this._isPlainEnter(event)) {
+                try { global.stage.set_key_focus(bodyText); bodyText.grab_key_focus(); } catch (_) {}
+                return Clutter.EVENT_STOP;
+            }
+            if (event.get_key_symbol() === Clutter.KEY_Escape) {
+                this._releaseGrab();
+                try { global.stage.set_key_focus(null); } catch (_) {}
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
         card.add_child(titleEntry);
 
         const bodyEntry = new St.Entry({
             style_class: 'nexnotch-notes-entry',
-            hint_text: 'Type your note…',
+            hint_text: 'Type your note… (Enter saves, Shift+Enter for a new line)',
             x_expand: true,
             y_expand: true,
             can_focus: true,
+            reactive: true,
         });
         const bodyText = bodyEntry.get_clutter_text();
         bodyText.set_single_line_mode(false);
@@ -155,9 +195,13 @@ export const Notes = GObject.registerClass({
             draft.body = bodyText.get_text();
             this._debouncedSave(draft);
         });
-        bodyText.connect('key-focus-in', () => this._onEntryFocusIn());
-        bodyText.connect('key-focus-out', () => this._onEntryFocusOut());
+        this._wireFocus(bodyText);
         bodyText.connect('key-press-event', (_a, event) => {
+            if (this._isPlainEnter(event)) {
+                if (draft.saveTimer) { GLib.source_remove(draft.saveTimer); draft.saveTimer = 0; }
+                this._saveDraft(draft);
+                return Clutter.EVENT_STOP;
+            }
             if (event.get_key_symbol() === Clutter.KEY_Escape) {
                 this._releaseGrab();
                 try { global.stage.set_key_focus(null); } catch (_) {}
@@ -173,6 +217,7 @@ export const Notes = GObject.registerClass({
             style_class: 'nexnotch-notes-info',
             x_expand: true,
         });
+        draft.statusLabel = status;
         footer.add_child(status);
         const delBtn = new St.Button({style_class: 'nexnotch-notes-clear', label: 'Delete', can_focus: true});
         delBtn.connect('clicked', () => {
@@ -219,6 +264,9 @@ export const Notes = GObject.registerClass({
             const content = draft.title.trim() ? `# ${draft.title.trim()}\n\n${draft.body}` : draft.body;
             GLib.file_set_contents(target, content);
             draft.filePath = target;
+            try {
+                if (draft.statusLabel) draft.statusLabel.text = `Saved → ${target.replace(GLib.get_home_dir(), '~')}`;
+            } catch (_) {}
         } catch (e) { logError(e, 'nexnotch:notes:save'); }
     }
 });
