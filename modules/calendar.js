@@ -3,6 +3,11 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Soup from 'gi://Soup?version=3.0';
+
+import {getAccessToken, listGoogleAccounts} from './goa.js';
+
+const TASKS_API = 'https://tasks.googleapis.com/tasks/v1';
 
 const CALENDAR_SERVER_XML = `
 <node>
@@ -27,7 +32,6 @@ const CALENDAR_SERVER_XML = `
 
 const CalendarProxy = Gio.DBusProxy.makeProxyWrapper(CALENDAR_SERVER_XML);
 
-let _ECal = null;
 let _EDataServer = null;
 let _eImportAttempted = false;
 
@@ -35,10 +39,9 @@ async function _loadEdsBindings() {
     if (_eImportAttempted) return;
     _eImportAttempted = true;
     try {
-        _ECal        = (await import('gi://ECal?version=2.0')).default;
         _EDataServer = (await import('gi://EDataServer?version=1.2')).default;
     } catch (e) {
-        log('nexnotch: libecal GIR not available, tasks disabled');
+        log('nexnotch: libedataserver GIR not available, calendar source filtering disabled');
     }
 }
 
@@ -56,12 +59,20 @@ export const CalendarPeek = GObject.registerClass({
         this._sigIds = [];
         this._refreshTimer = 0;
         this._tasksTimer = 0;
-        this._taskClients = [];
+        this._soup = new Soup.Session();
+        this._soup.set_timeout(15);
     }
 
     start() {
+        this._stopped = false;
         this._startCalendar();
-        _loadEdsBindings().then(() => this._startTasks());
+        _loadEdsBindings();
+        this._refreshTasks();
+        this._tasksTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 600, () => {
+            if (this._stopped) return GLib.SOURCE_REMOVE;
+            this._refreshTasks();
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     stop() {
@@ -78,7 +89,6 @@ export const CalendarPeek = GObject.registerClass({
             this._sigIds = [];
             this._proxy = null;
         }
-        this._taskClients = [];
         this._emailMap = null;
     }
 
@@ -183,78 +193,76 @@ export const CalendarPeek = GObject.registerClass({
         this.emit('updated');
     }
 
-    _startTasks() {
-        if (!_ECal || !_EDataServer) return;
-        this._stopped = false;
-        this._cancellable = new Gio.Cancellable();
-        try {
-            const registry = _EDataServer.SourceRegistry.new_sync(this._cancellable);
-            const sources = registry.list_sources(_EDataServer.SOURCE_EXTENSION_TASK_LIST);
-            for (const src of sources) {
-                if (!src.get_enabled()) continue;
-                _ECal.Client.connect(src, _ECal.ClientSourceType.TASKS, 30, this._cancellable,
-                    (_, res) => {
-                        if (this._stopped || this._cancellable?.is_cancelled()) return;
-                        this._onTaskClient(src, res);
-                    });
-            }
-            this._tasksTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 600, () => {
-                if (this._stopped) return GLib.SOURCE_REMOVE;
-                this._refreshAllTasks();
-                return GLib.SOURCE_CONTINUE;
-            });
-        } catch (e) { logError(e, 'nexnotch:tasks:start'); }
-    }
-
-    _onTaskClient(source, res) {
+    /* Tasks come straight from the Google Tasks REST API using the same
+       OAuth token GOA already holds for the account (see goa.js) — this
+       bypasses evolution-data-server's task backend entirely. On this
+       machine EDS's own gtasks connector fails ("credentials required...
+       not activatable"), a distro-level EDS/D-Bus issue unrelated to the
+       token itself, which this route sidesteps completely. */
+    async _refreshTasks() {
         if (this._stopped) return;
         try {
-            const client = _ECal.Client.connect_finish(res);
-            this._taskClients.push({source, client});
-            this._refreshTaskClient(source, client);
-        } catch (e) { logError(e, 'nexnotch:tasks:connect'); }
-    }
-
-    _refreshAllTasks() {
-        this._tasks = [];
-        for (const {source, client} of this._taskClients) this._refreshTaskClient(source, client);
-    }
-
-    _refreshTaskClient(source, client) {
-        if (this._stopped) return;
-        try {
-            client.get_object_list(
-                '(not (is-completed?))',
-                this._cancellable,
-                (_, res) => {
-                    if (this._stopped || this._cancellable?.is_cancelled()) return;
-                    try {
-                        const finish = client.get_object_list_finish(res);
-                        const objs = Array.isArray(finish) && finish.length === 2 ? finish[1] : finish;
-                        if (!objs) return;
-                        const listName = source.get_display_name?.() ?? '';
-                        for (const icalComp of objs) {
-                            try {
-                                const summary  = icalComp.get_summary?.();
-                                const status   = icalComp.get_status?.();
-                                const dueProp  = icalComp.get_due?.();
-                                const due = dueProp && !dueProp.is_null_time?.()
-                                    ? new Date(dueProp.get_value().as_timet() * 1000)
-                                    : null;
-                                this._tasks.push({
-                                    id: icalComp.get_uid?.(),
-                                    title: summary ?? '(untitled)',
-                                    done: status === 'COMPLETED',
-                                    due,
-                                    list: listName,
-                                });
-                            } catch (_) {}
+            const accounts = (await listGoogleAccounts()).filter(a => !a.todoDisabled);
+            const tasks = [];
+            for (const acct of accounts) {
+                if (this._stopped) return;
+                try {
+                    const token = await getAccessToken(acct.email);
+                    const lists = await this._apiGet(token, `${TASKS_API}/users/@me/lists`);
+                    for (const l of lists.items ?? []) {
+                        if (this._stopped) return;
+                        const data = await this._apiGet(token, `${TASKS_API}/lists/${l.id}/tasks?showCompleted=false&showHidden=false`);
+                        for (const t of data.items ?? []) {
+                            if (t.status === 'completed') continue;
+                            tasks.push({
+                                id: t.id,
+                                listId: l.id,
+                                title: t.title || '(untitled)',
+                                done: t.status === 'completed',
+                                due: t.due ? new Date(t.due) : null,
+                                list: l.title,
+                                email: acct.email,
+                            });
                         }
-                        this._tasks.sort((a, b) => (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity));
-                        this.emit('updated');
-                    } catch (e) { logError(e, 'nexnotch:tasks:list'); }
-                });
+                    }
+                } catch (e) { logError(e, `nexnotch:tasks:account:${acct.email}`); }
+            }
+            tasks.sort((a, b) => (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity));
+            this._tasks = tasks;
+            this.emit('updated');
         } catch (e) { logError(e, 'nexnotch:tasks:refresh'); }
+    }
+
+    _apiGet(token, url) {
+        return new Promise((resolve, reject) => {
+            const msg = Soup.Message.new('GET', url);
+            msg.request_headers.append('Authorization', `Bearer ${token}`);
+            this._soup.send_and_read_async(msg, GLib.PRIORITY_LOW, null, (session, res) => {
+                try {
+                    const bytes = session.send_and_read_finish(res);
+                    const text = new TextDecoder().decode(bytes.get_data());
+                    if (msg.status_code < 200 || msg.status_code >= 300) {
+                        reject(new Error(`${url} → ${msg.status_code}: ${text}`));
+                        return;
+                    }
+                    resolve(JSON.parse(text));
+                } catch (e) { reject(e); }
+            });
+        });
+    }
+
+    async toggleTask(t) {
+        try {
+            const token = await getAccessToken(t.email);
+            const msg = Soup.Message.new('PATCH', `${TASKS_API}/lists/${t.listId}/tasks/${t.id}`);
+            msg.request_headers.append('Authorization', `Bearer ${token}`);
+            msg.request_headers.append('Content-Type', 'application/json');
+            const body = JSON.stringify({status: t.done ? 'needsAction' : 'completed'});
+            msg.set_request_body_from_bytes('application/json', new GLib.Bytes(new TextEncoder().encode(body)));
+            this._soup.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null, () => {
+                this._refreshTasks();
+            });
+        } catch (e) { logError(e, 'nexnotch:tasks:toggle'); }
     }
 
     render(tab) {
@@ -340,14 +348,6 @@ export const CalendarPeek = GObject.registerClass({
 
     _renderTasks() {
         const box = new St.BoxLayout({style_class: 'nexnotch-tasks', vertical: true, x_expand: true, y_expand: true});
-        if (!_ECal) {
-            box.add_child(new St.Label({
-                text: 'libecal unavailable — install evolution-data-server',
-                style_class: 'nexnotch-empty',
-                x_align: Clutter.ActorAlign.CENTER,
-            }));
-            return box;
-        }
 
         const filter = this._settings.get_strv('tasks-enabled-lists');
         let tasks = this._tasks;
@@ -416,22 +416,6 @@ export const CalendarPeek = GObject.registerClass({
         row.add_child(col);
         if (t.due) row.add_child(new St.Label({text: this._formatDue(t.due), style_class: 'nexnotch-task-due'}));
         return row;
-    }
-
-    toggleTask(t) {
-        const entry = this._taskClients.find(c => c.source.get_display_name() === t.list);
-        if (!entry) return;
-        try {
-            entry.client.get_object(t.id, null, this._cancellable, (_, res) => {
-                try {
-                    const icalComp = entry.client.get_object_finish(res);
-                    icalComp.set_status(t.done ? 'NEEDS-ACTION' : 'COMPLETED');
-                    entry.client.modify_object(icalComp, _ECal.ObjModType.ALL, this._cancellable, () => {
-                        this._refreshTaskClient(entry.source, entry.client);
-                    });
-                } catch (e) { logError(e, 'nexnotch:tasks:toggle'); }
-            });
-        } catch (e) { logError(e, 'nexnotch:tasks:toggle'); }
     }
 
     _formatTime(ev) {
